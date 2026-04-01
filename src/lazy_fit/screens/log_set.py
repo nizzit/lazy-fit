@@ -18,6 +18,8 @@ from lazy_fit.db.models import (
     get_sets_for_date,
     create_workout_set,
     delete_workout_set,
+    get_last_value_for_exercise,
+    get_last_equipment_for_exercise,
 )
 
 
@@ -67,6 +69,8 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     today = _today()
     equipment_list = get_all_equipment()
+    last_value = get_last_value_for_exercise(exercise.id)
+    last_equipment_id = get_last_equipment_for_exercise(exercise.id)
 
     # ------------------------------------------------------------------ state
     timer_running = [False]
@@ -152,10 +156,10 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         else:
             create_workout_set(today, exercise.id, duration_sec=int_value, equipment_id=eq_id)
 
-        # Reset inputs
-        if value_input_ref[0]:
-            value_input_ref[0].value = 0
+        # Keep last saved value as default for next set
         on_timer_reset(widget)
+        if value_input_ref[0]:
+            value_input_ref[0].value = int_value
 
         # Refresh history panel
         _refresh_history()
@@ -181,7 +185,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     value_input = toga.NumberInput(
         min=0,
         step=1,
-        value=0,
+        value=last_value if last_value is not None else 0,
         style=Pack(flex=1, margin=4),
     )
     value_input_ref[0] = value_input
@@ -216,7 +220,14 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     # Equipment picker
     equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
-    equip_select = toga.Selection(items=equip_options, style=Pack(flex=1, margin=4))
+    _last_equip_name = next(
+        (eq.name for eq in equipment_list if eq.id == last_equipment_id), None
+    )
+    equip_select = toga.Selection(
+        items=equip_options,
+        value=_last_equip_name if _last_equip_name is not None else t("no_equipment"),
+        style=Pack(flex=1, margin=4),
+    )
     equip_select_ref[0] = equip_select
 
     equip_row = toga.Box(

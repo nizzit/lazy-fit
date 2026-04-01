@@ -3,7 +3,7 @@
 #  Requires: uv, Java JDK, Android SDK (set ANDROID_HOME)
 # ============================================================
 
-.PHONY: help run dev create build install run-android package clean logs
+.PHONY: help run dev create build run-android package clean logs
 
 # ── defaults ────────────────────────────────────────────────
 APP      := lazy-fit
@@ -43,10 +43,6 @@ create:
 # ── android: compile (Gradle build) ─────────────────────────
 build:
 	uv run briefcase build $(PLATFORM)
-
-# ── android: install APK on connected device / emulator ─────
-install: build
-	uv run briefcase run $(PLATFORM) --no-run
 
 # ── android: build + install + launch ───────────────────────
 run-android:

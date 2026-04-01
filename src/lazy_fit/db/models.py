@@ -266,3 +266,31 @@ def delete_workout_by_date(date: str) -> None:
     conn = get_connection()
     conn.execute("DELETE FROM workout_set WHERE date=?", (date,))
     conn.commit()
+
+
+def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
+    """Return the most recent equipment_id used for *exercise_id*, or None."""
+    row = get_connection().execute(
+        """SELECT equipment_id FROM workout_set
+           WHERE exercise_id = ?
+           ORDER BY date DESC, order_index DESC, created_at DESC
+           LIMIT 1""",
+        (exercise_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return row["equipment_id"]
+
+
+def get_last_value_for_exercise(exercise_id: int) -> Optional[int]:
+    """Return the most recent reps or duration_sec for *exercise_id*, or None."""
+    row = get_connection().execute(
+        """SELECT reps, duration_sec FROM workout_set
+           WHERE exercise_id = ?
+           ORDER BY date DESC, order_index DESC, created_at DESC
+           LIMIT 1""",
+        (exercise_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return row["reps"] if row["reps"] is not None else row["duration_sec"]
