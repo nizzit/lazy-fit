@@ -1,0 +1,38 @@
+[project]
+name = "lazy-fit"
+version = "0.1.0"
+description = "Workout tracker for Android"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "briefcase>=0.3.26",
+    "toga>=0.5.3",
+]
+
+[tool.briefcase]
+project_name = "Lazy Fit"
+bundle = "com.lazyfit"
+version = "0.1.0"
+url = "https://github.com/user/lazy-fit"
+license.text = "MIT"
+author = "Author"
+author_email = "author@example.com"
+
+[tool.briefcase.app.lazy-fit]
+formal_name = "Lazy Fit"
+description = "Workout tracker"
+long_description = "Track your gym workouts"
+sources = ["src/lazy_fit"]
+requires = [
+    "toga>=0.5.3",
+]
+
+[tool.briefcase.app.lazy-fit.android]
+requires = []
+base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
+build_gradle_dependencies = [
+    "com.google.android.material:material:1.11.0",
+]
+
+[tool.briefcase.app.lazy-fit.android.permissions]
+"android.permission.WAKE_LOCK" = true

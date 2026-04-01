@@ -1,0 +1,69 @@
+strings: dict[str, str] = {
+    # App
+    "app_name": "Lazy Fit",
+    "lang_toggle": "RU",
+
+    # Home
+    "start_workout": "Start Workout",
+    "history": "History",
+    "settings": "Settings",
+
+    # Muscle groups
+    "muscle_groups": "Muscle Groups",
+    "weekly_sets_target": "Target: {n} sets/week",
+    "no_muscle_groups": "No muscle groups. Add them in Settings.",
+
+    # Exercises
+    "exercises": "Exercises",
+    "no_exercises": "No exercises for this group. Add them in Settings.",
+    "type_reps": "Reps",
+    "type_time": "Time",
+
+    # Log set
+    "log_set": "Log Set",
+    "reps": "Reps",
+    "duration": "Duration (sec)",
+    "equipment": "Equipment",
+    "no_equipment": "No equipment",
+    "save_set": "Save Set",
+    "todays_workout": "Today's Workout",
+    "no_sets_today": "No sets yet",
+    "set_reps_label": "{reps} reps",
+    "set_time_label": "{mm}:{ss}",
+    "delete": "Delete",
+    "timer_start": "Start",
+    "timer_stop": "Stop",
+    "timer_reset": "Reset",
+
+    # History
+    "workout_history": "Workout History",
+    "no_history": "No workouts yet",
+    "sets_count": "{n} sets",
+    "muscles_worked": "Muscles: {muscles}",
+
+    # Workout detail
+    "workout_detail": "Workout {date}",
+    "delete_workout": "Delete Workout",
+    "confirm_delete_workout": "Delete entire workout for {date}?",
+    "confirm_delete_set": "Delete this set?",
+    "yes": "Yes",
+    "no": "No",
+    "edit_set": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+
+    # Settings
+    "settings_title": "Settings",
+    "manage_muscle_groups": "Muscle Groups",
+    "manage_equipment": "Equipment",
+    "manage_exercises": "Exercises",
+    "add": "Add",
+    "edit": "Edit",
+    "name": "Name",
+    "weekly_sets": "Sets per week (opt.)",
+    "muscle_group": "Muscle Group",
+    "exercise_type": "Type",
+    "error_empty_name": "Name cannot be empty",
+    "error_duplicate_name": "This name already exists",
+    "back": "Back",
+}

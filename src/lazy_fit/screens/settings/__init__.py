@@ -1,0 +1,45 @@
+"""Settings root screen."""
+
+from __future__ import annotations
+
+import toga
+from toga.style import Pack
+from toga.style.pack import COLUMN
+
+from lazy_fit.i18n import t, set_language, get_language
+
+
+def build(app: toga.App) -> toga.Box:
+    """Build and return the settings menu screen."""
+
+    def on_muscle_groups(widget: toga.Widget) -> None:
+        from lazy_fit.screens.settings.manage_muscle_groups import build as b
+        app.nav_push(b(app), t("manage_muscle_groups"))
+
+    def on_equipment(widget: toga.Widget) -> None:
+        from lazy_fit.screens.settings.manage_equipment import build as b
+        app.nav_push(b(app), t("manage_equipment"))
+
+    def on_exercises(widget: toga.Widget) -> None:
+        from lazy_fit.screens.settings.manage_exercises import build as b
+        app.nav_push(b(app), t("manage_exercises"))
+
+    def on_lang_toggle(widget: toga.Widget) -> None:
+        new_lang = "en" if get_language() == "ru" else "ru"
+        set_language(new_lang)
+        # Rebuild home screen and settings in place
+        from lazy_fit.screens.home import build as build_home
+        app.nav_replace_root(build_home(app), t("app_name"))
+
+    btn_style = Pack(margin=12, width=280)
+
+    root = toga.Box(
+        children=[
+            toga.Button(t("manage_muscle_groups"), on_press=on_muscle_groups, style=btn_style),
+            toga.Button(t("manage_equipment"), on_press=on_equipment, style=btn_style),
+            toga.Button(t("manage_exercises"), on_press=on_exercises, style=btn_style),
+            toga.Button(t("lang_toggle"), on_press=on_lang_toggle, style=btn_style),
+        ],
+        style=Pack(direction=COLUMN, align_items="center", margin=32),
+    )
+    return root

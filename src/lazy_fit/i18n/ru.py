@@ -1,0 +1,69 @@
+strings: dict[str, str] = {
+    # App
+    "app_name": "Lazy Fit",
+    "lang_toggle": "EN",
+
+    # Home
+    "start_workout": "Начать тренировку",
+    "history": "История",
+    "settings": "Настройки",
+
+    # Muscle groups
+    "muscle_groups": "Группы мышц",
+    "weekly_sets_target": "Цель: {n} подх./нед.",
+    "no_muscle_groups": "Нет групп мышц. Добавьте в настройках.",
+
+    # Exercises
+    "exercises": "Упражнения",
+    "no_exercises": "Нет упражнений для этой группы. Добавьте в настройках.",
+    "type_reps": "Повторения",
+    "type_time": "Время",
+
+    # Log set
+    "log_set": "Записать подход",
+    "reps": "Повторения",
+    "duration": "Время (сек)",
+    "equipment": "Инвентарь",
+    "no_equipment": "Без инвентаря",
+    "save_set": "Сохранить подход",
+    "todays_workout": "Сегодняшняя тренировка",
+    "no_sets_today": "Подходов ещё нет",
+    "set_reps_label": "{reps} повт.",
+    "set_time_label": "{mm}:{ss}",
+    "delete": "Удалить",
+    "timer_start": "Старт",
+    "timer_stop": "Стоп",
+    "timer_reset": "Сброс",
+
+    # History
+    "workout_history": "История тренировок",
+    "no_history": "История пуста",
+    "sets_count": "{n} подх.",
+    "muscles_worked": "Мышцы: {muscles}",
+
+    # Workout detail
+    "workout_detail": "Тренировка {date}",
+    "delete_workout": "Удалить тренировку",
+    "confirm_delete_workout": "Удалить всю тренировку за {date}?",
+    "confirm_delete_set": "Удалить этот подход?",
+    "yes": "Да",
+    "no": "Нет",
+    "edit_set": "Редактировать",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+
+    # Settings
+    "settings_title": "Настройки",
+    "manage_muscle_groups": "Группы мышц",
+    "manage_equipment": "Инвентарь",
+    "manage_exercises": "Упражнения",
+    "add": "Добавить",
+    "edit": "Изменить",
+    "name": "Название",
+    "weekly_sets": "Подходов в неделю (опц.)",
+    "muscle_group": "Группа мышц",
+    "exercise_type": "Тип",
+    "error_empty_name": "Название не может быть пустым",
+    "error_duplicate_name": "Такое название уже существует",
+    "back": "Назад",
+}
