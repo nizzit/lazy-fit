@@ -9,6 +9,7 @@ from typing import Optional
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
+from typing import Callable
 
 from lazy_fit.i18n import t
 from lazy_fit.widgets import StepperInput
@@ -18,7 +19,6 @@ from lazy_fit.db.models import (
     get_all_equipment,
     get_sets_for_date,
     create_workout_set,
-    delete_workout_set,
     get_last_value_for_exercise,
     get_last_equipment_for_exercise,
 )
@@ -173,7 +173,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         # Clear existing children
         for child in list(box.children):
             box.remove(child)
-        _populate_history(box, today, app)
+        _populate_history(box, today, app, _refresh_history)
 
     # ------------------------------------------------------------------ build UI
     # Header
@@ -253,7 +253,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     )
     history_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
     history_box_ref[0] = history_box
-    _populate_history(history_box, today, app)
+    _populate_history(history_box, today, app, _refresh_history)
 
     history_scroll = toga.ScrollContainer(
         content=history_box,
@@ -267,49 +267,73 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     return root
 
 
-def _populate_history(box: toga.Box, date: str, app: toga.App) -> None:
+def _populate_history(
+    box: toga.Box,
+    date: str,
+    app: toga.App,
+    on_set_changed: Callable[[], None] | None = None,
+) -> None:
     """Fill *box* with today's sets grouped by exercise."""
-    sets = get_sets_for_date(date)
+    sets = list(reversed(get_sets_for_date(date)))
 
     if not sets:
         box.add(toga.Label(t("no_sets_today"), style=Pack(margin=8)))
         return
 
-    # Group by exercise
+    # Group by exercise (order preserved — most recent exercise first)
     groups: dict[str, list[WorkoutSet]] = {}
     for s in sets:
         groups.setdefault(s.exercise_name, []).append(s)
 
+    per_row = _buttons_per_row(app)
+
     for ex_name, ex_sets in groups.items():
         box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=13)))
-        for ws in ex_sets:
-            _add_set_row(box, ws, app)
+        wrap = toga.Box(style=Pack(direction=COLUMN))
+        current_row = toga.Box(style=Pack(direction=ROW))
+        for i, ws in enumerate(ex_sets):
+            if i > 0 and i % per_row == 0:
+                wrap.add(current_row)
+                current_row = toga.Box(style=Pack(direction=ROW))
+            _add_set_button(current_row, ws, app, on_set_changed)
+        if current_row.children:
+            wrap.add(current_row)
+        box.add(wrap)
 
 
-def _add_set_row(container: toga.Box, ws: WorkoutSet, app: toga.App) -> None:
-    """Add a single set row with a delete button."""
+def _add_set_button(
+    container: toga.Box,
+    ws: WorkoutSet,
+    app: toga.App,
+    on_set_changed: Callable[[], None] | None = None,
+) -> None:
+    """Add a button for a single set; tap opens the edit screen."""
 
     if ws.exercise_type == "reps":
-        value_text = t("set_reps_label").format(reps=ws.reps)
+        label = str(ws.reps or 0)
     else:
         secs = ws.duration_sec or 0
-        value_text = t("set_time_label").format(mm=f"{secs // 60:02d}", ss=f"{secs % 60:02d}")
+        label = f"{secs // 60:02d}:{secs % 60:02d}"
 
-    if ws.equipment_name:
-        value_text += f"  [{ws.equipment_name}]"
+    def on_press(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
+        from lazy_fit.screens.edit_set import build as build_edit
+        from lazy_fit.db.models import get_all_equipment as _get_equip
 
-    def on_delete(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
-        delete_workout_set(ws.id)
-        # Remove this row from its parent
-        row = widget.parent
-        if row and row.parent:
-            row.parent.remove(row)
+        def _on_saved() -> None:
+            if on_set_changed:
+                on_set_changed()
 
-    row = toga.Box(
-        children=[
-            toga.Label(value_text, style=Pack(flex=1, margin=4)),
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=4)),
-        ],
-        style=Pack(direction=ROW, margin=(2, 8)),
-    )
-    container.add(row)
+        screen = build_edit(app, ws, _get_equip(), _on_saved)
+        app.nav_push(screen, t("edit_set"))
+
+    container.add(toga.Button(label, on_press=on_press, style=Pack(margin=4, width=64)))
+
+
+def _buttons_per_row(app: toga.App, slot_width: int = 72) -> int:
+    """Return how many buttons fit in one row given the current screen width."""
+    try:
+        screen_w = app.main_window.screen.size.width
+        return max(2, int(screen_w // slot_width))
+    except Exception:
+        return 4
+

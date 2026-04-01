@@ -10,7 +10,7 @@ from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
 from lazy_fit.widgets import StepperInput
-from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set
+from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set, delete_workout_set
 
 
 def build(
@@ -81,11 +81,17 @@ def build(
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
+    def on_delete(widget: toga.Widget) -> None:
+        delete_workout_set(ws.id)
+        on_saved()
+        app.nav_pop()
+
     save_btn = toga.Button(t("save"), on_press=on_save, style=Pack(margin=8))
     cancel_btn = toga.Button(t("cancel"), on_press=on_cancel, style=Pack(margin=8))
+    delete_btn = toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=8))
 
     btn_row = toga.Box(
-        children=[save_btn, cancel_btn],
+        children=[save_btn, cancel_btn, delete_btn],
         style=Pack(direction=ROW, margin=8),
     )
 
