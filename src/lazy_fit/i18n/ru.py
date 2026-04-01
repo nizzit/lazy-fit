@@ -31,6 +31,7 @@ strings: dict[str, str] = {
     "set_reps_label": "{reps} повт.",
     "set_time_label": "{mm}:{ss}",
     "delete": "Удалить",
+    "timer": "Таймер",
     "timer_start": "Старт",
     "timer_stop": "Стоп",
     "timer_reset": "Сброс",
