@@ -24,22 +24,25 @@ def build(app: toga.App) -> toga.Box:
         from lazy_fit.screens.settings.manage_exercises import build as b
         app.nav_push(b(app), t("manage_exercises"))
 
+    def on_rest_timer(widget: toga.Widget) -> None:
+        from lazy_fit.screens.settings.rest_timer import build as b
+        app.nav_push(b(app), t("rest_timer"))
+
     def on_lang_toggle(widget: toga.Widget) -> None:
         new_lang = "en" if get_language() == "ru" else "ru"
         set_language(new_lang)
-        # Rebuild home screen and settings in place
         from lazy_fit.screens.home import build as build_home
         app.nav_replace_root(build_home(app), t("app_name"))
 
     btn_style = Pack(margin=12, width=280)
 
-    root = toga.Box(
+    return toga.Box(
         children=[
             toga.Button(t("manage_muscle_groups"), on_press=on_muscle_groups, style=btn_style),
             toga.Button(t("manage_equipment"), on_press=on_equipment, style=btn_style),
             toga.Button(t("manage_exercises"), on_press=on_exercises, style=btn_style),
+            toga.Button(t("rest_timer"), on_press=on_rest_timer, style=btn_style),
             toga.Button(t("lang_toggle"), on_press=on_lang_toggle, style=btn_style),
         ],
         style=Pack(direction=COLUMN, align_items="center", margin=32),
     )
-    return root

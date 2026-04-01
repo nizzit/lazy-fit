@@ -52,6 +52,14 @@ strings: dict[str, str] = {
     "save": "Сохранить",
     "cancel": "Отмена",
 
+    # Rest timer
+    "rest_timer": "Таймер отдыха",
+    "rest_timer_on": "Включён",
+    "rest_timer_duration": "Длительность (сек)",
+    "rest_timer_countdown": "Отдых: {time}",
+    "rest_timer_skip": "Пропустить",
+    "rest_timer_done": "Отдых завершён!",
+
     # Settings
     "settings_title": "Настройки",
     "manage_muscle_groups": "Группы мышц",

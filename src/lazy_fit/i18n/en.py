@@ -52,6 +52,14 @@ strings: dict[str, str] = {
     "save": "Save",
     "cancel": "Cancel",
 
+    # Rest timer
+    "rest_timer": "Rest Timer",
+    "rest_timer_on": "Enabled",
+    "rest_timer_duration": "Duration (sec)",
+    "rest_timer_countdown": "Rest: {time}",
+    "rest_timer_skip": "Skip",
+    "rest_timer_done": "Rest complete!",
+
     # Settings
     "settings_title": "Settings",
     "manage_muscle_groups": "Muscle Groups",

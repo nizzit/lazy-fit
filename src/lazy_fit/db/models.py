@@ -282,6 +282,29 @@ def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
     return row["equipment_id"]
 
 
+# ---------------------------------------------------------------------------
+# App settings
+# ---------------------------------------------------------------------------
+
+def get_setting(key: str, default: str = "") -> str:
+    row = get_connection().execute(
+        "SELECT value FROM app_settings WHERE key = ?", (key,)
+    ).fetchone()
+    return row["value"] if row else default
+
+
+def set_setting(key: str, value: str) -> None:
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO app_settings(key, value) VALUES(?, ?)"
+        " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, value),
+    )
+    conn.commit()
+
+
+# ---------------------------------------------------------------------------
+
 def get_last_value_for_exercise(exercise_id: int) -> Optional[int]:
     """Return the most recent reps or duration_sec for *exercise_id*, or None."""
     row = get_connection().execute(

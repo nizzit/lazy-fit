@@ -78,12 +78,18 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     timer_handle = [None]
     wake_lock_ref: list[object | None] = [None]
 
+    rest_running = [False]
+    rest_remaining = [0]
+
     # ------------------------------------------------------------------ refs
     # We keep mutable references so inner functions can update them
     timer_label_ref: list[Optional[toga.Label]] = [None]
     value_input_ref: list[Optional[toga.NumberInput]] = [None]
     equip_select_ref: list[Optional[toga.Selection]] = [None]
     history_box_ref: list[Optional[toga.Box]] = [None]
+    rest_box_ref: list[Optional[toga.Box]] = [None]
+    rest_label_ref: list[Optional[toga.Label]] = [None]
+    rest_skip_btn_ref: list[Optional[toga.Button]] = [None]
 
     # ------------------------------------------------------------------ timer helpers
     def _fmt_elapsed(secs: int) -> str:
@@ -132,6 +138,88 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         if value_input_ref[0] is not None:
             value_input_ref[0].value = 0
 
+    # ------------------------------------------------------------------ rest timer
+    def _fmt_remaining(secs: int) -> str:
+        mm = secs // 60
+        ss = secs % 60
+        return f"{mm:02d}:{ss:02d}"
+
+    def _clear_rest_box() -> None:
+        rest_running[0] = False
+        box = rest_box_ref[0]
+        if box is not None:
+            for child in list(box.children):
+                box.remove(child)
+
+    def _on_skip_rest(widget: toga.Widget) -> None:
+        _clear_rest_box()
+
+    def _rest_tick() -> None:
+        if not rest_running[0]:
+            return
+        rest_remaining[0] -= 1
+        if rest_remaining[0] <= 0:
+            rest_running[0] = False
+            lbl = rest_label_ref[0]
+            if lbl is not None:
+                lbl.text = t("rest_timer_done")
+            btn = rest_skip_btn_ref[0]
+            if btn is not None:
+                box = rest_box_ref[0]
+                if box is not None:
+                    box.remove(btn)
+                rest_skip_btn_ref[0] = None
+            async def _auto_clear(app: toga.App, **kwargs: object) -> None:
+                import asyncio
+                await asyncio.sleep(2)
+                _clear_rest_box()
+            app.add_background_task(_auto_clear)
+            return
+        lbl = rest_label_ref[0]
+        if lbl is not None:
+            lbl.text = t("rest_timer_countdown").format(time=_fmt_remaining(rest_remaining[0]))
+        async def _wait_tick(app: toga.App, **kwargs: object) -> None:
+            import asyncio
+            await asyncio.sleep(1)
+            _rest_tick()
+        app.add_background_task(_wait_tick)
+
+    def _start_rest_timer() -> None:
+        from lazy_fit.db.models import get_setting
+        if get_setting("rest_timer_enabled", "0") != "1":
+            return
+        try:
+            secs = int(get_setting("rest_timer_seconds", "60"))
+        except ValueError:
+            secs = 60
+        if secs <= 0:
+            return
+
+        rest_running[0] = True
+        rest_remaining[0] = secs
+
+        box = rest_box_ref[0]
+        if box is None:
+            return
+        for child in list(box.children):
+            box.remove(child)
+
+        rest_label = toga.Label(
+            t("rest_timer_countdown").format(time=_fmt_remaining(secs)),
+            style=Pack(font_size=20, margin=4),
+        )
+        rest_label_ref[0] = rest_label
+        skip_btn = toga.Button(t("rest_timer_skip"), on_press=_on_skip_rest, style=Pack(margin=4))
+        rest_skip_btn_ref[0] = skip_btn
+        box.add(rest_label)
+        box.add(skip_btn)
+
+        async def _first_tick(app: toga.App, **kwargs: object) -> None:
+            import asyncio
+            await asyncio.sleep(1)
+            _rest_tick()
+        app.add_background_task(_first_tick)
+
     # ------------------------------------------------------------------ save
     def on_save(widget: toga.Widget) -> None:
         raw_value = value_input_ref[0].value if value_input_ref[0] else None
@@ -164,6 +252,9 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         # Refresh history panel
         _refresh_history()
 
+        # Start rest timer if enabled
+        _start_rest_timer()
+
     # ------------------------------------------------------------------ history
     def _refresh_history() -> None:
         box = history_box_ref[0]
@@ -175,6 +266,10 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         populate_workout_log(box, today, app, _refresh_history, reverse=True)
 
     # ------------------------------------------------------------------ build UI
+    # Rest timer banner (populated dynamically after each save)
+    rest_box = toga.Box(style=Pack(direction=ROW, align_items="center", margin=4))
+    rest_box_ref[0] = rest_box
+
     # Header
     header = toga.Label(
         f"{exercise.name}  ·  {exercise.muscle_group_name}",
@@ -260,7 +355,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     )
 
     root = toga.Box(
-        children=[header, form_box, history_title, history_scroll],
+        children=[rest_box, header, form_box, history_title, history_scroll],
         style=Pack(direction=COLUMN, flex=1),
     )
     return root

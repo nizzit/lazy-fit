@@ -59,5 +59,10 @@ def init_db() -> None:
         );
 
         CREATE INDEX IF NOT EXISTS idx_workout_set_date ON workout_set(date);
+
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
     """)
     conn.commit()
