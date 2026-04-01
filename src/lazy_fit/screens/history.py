@@ -1,56 +1,75 @@
-"""Workout History screen — list of past workouts by date."""
+"""Workout History screen — list of past workouts with inline details."""
 
 from __future__ import annotations
+
+from typing import Optional
 
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.db.models import get_workout_dates, get_sets_for_date
+from lazy_fit.db.models import get_workout_dates, delete_workout_by_date
+from lazy_fit.screens._workout_log import populate_workout_log
 
 
 def build(app: toga.App) -> toga.Box:
     """Build and return the history screen."""
 
-    dates = get_workout_dates()
+    scroll_content_ref: list[Optional[toga.Box]] = [None]
+
+    def _rebuild() -> None:
+        box = scroll_content_ref[0]
+        if box is None:
+            return
+        for child in list(box.children):
+            box.remove(child)
+        _fill(box, app, _rebuild)
 
     scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
-
-    if not dates:
-        scroll_content.add(toga.Label(t("no_history"), style=Pack(margin=16)))
-    else:
-        for date in dates:
-            _add_date_row(app, scroll_content, date)
+    scroll_content_ref[0] = scroll_content
+    _fill(scroll_content, app, _rebuild)
 
     scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
-    root = toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
-    return root
+    return toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
 
 
-def _add_date_row(app: toga.App, container: toga.Box, date: str) -> None:
-    sets = get_sets_for_date(date)
-    n_sets = len(sets)
-    muscles = ", ".join(sorted({s.exercise_name.split()[0] for s in sets}))  # rough summary
+def _fill(container: toga.Box, app: toga.App, on_changed: object) -> None:
+    dates = get_workout_dates()
+    if not dates:
+        container.add(toga.Label(t("no_history"), style=Pack(margin=16)))
+        return
+    for date in dates:
+        _add_date_section(container, date, app, on_changed)
 
-    def on_tap(widget: toga.Widget, date: str = date) -> None:
-        from lazy_fit.screens.workout_detail import build as build_detail
-        app.nav_push(build_detail(app, date), t("workout_detail").format(date=date))
 
-    row = toga.Box(
-        children=[
-            toga.Box(
-                children=[
-                    toga.Label(date, style=Pack(font_size=15, margin=(4, 4, 0, 4))),
-                    toga.Label(
-                        t("sets_count").format(n=n_sets),
-                        style=Pack(margin=(0, 4, 4, 4)),
-                    ),
-                ],
-                style=Pack(direction=COLUMN, flex=1),
-            ),
-            toga.Button("›", on_press=on_tap, style=Pack(margin=4, width=40)),
-        ],
-        style=Pack(direction=ROW, margin=8),
+def _add_date_section(
+    container: toga.Box, date: str, app: toga.App, on_changed: object
+) -> None:
+    container.add(toga.Label(date, style=Pack(font_size=15, margin=(12, 8, 2, 8))))
+
+    def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
+        async def _confirm(app: toga.App, **kwargs: object) -> None:
+            result = await app.dialog(
+                toga.ConfirmDialog(
+                    t("delete_workout"),
+                    t("confirm_delete_workout").format(date=date),
+                )
+            )
+            if result:
+                delete_workout_by_date(date)
+                on_changed()  # type: ignore[operator]
+
+        app.add_background_task(_confirm)
+
+    container.add(
+        toga.Button(
+            t("delete_workout"),
+            on_press=on_delete_workout,
+            style=Pack(margin=(0, 8, 4, 8)),
+        )
     )
-    container.add(row)
+
+    log_box = toga.Box(style=Pack(direction=COLUMN))
+    populate_workout_log(log_box, date, app, on_set_changed=on_changed, reverse=False)  # type: ignore[arg-type]
+    container.add(log_box)
