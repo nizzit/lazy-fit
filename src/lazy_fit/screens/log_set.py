@@ -345,19 +345,16 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         t("todays_workout"),
         style=Pack(margin=(12, 8, 4, 8), font_size=14),
     )
-    history_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
+    history_box = toga.Box(style=Pack(direction=COLUMN))
     history_box_ref[0] = history_box
     populate_workout_log(history_box, today, app, _refresh_history, reverse=True)
 
-    history_scroll = toga.ScrollContainer(
-        content=history_box,
-        style=Pack(flex=1),
+    scroll_content = toga.Box(
+        children=[rest_box, header, form_box, history_title, history_box],
+        style=Pack(direction=COLUMN),
     )
-
-    root = toga.Box(
-        children=[rest_box, header, form_box, history_title, history_scroll],
-        style=Pack(direction=COLUMN, flex=1),
-    )
+    scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
+    root = toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
     return root
 
 

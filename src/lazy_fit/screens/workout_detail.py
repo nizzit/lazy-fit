@@ -53,16 +53,16 @@ def build(app: toga.App, date: str) -> toga.Box:
         style=Pack(margin=8),
     )
 
-    content_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
+    content_box = toga.Box(style=Pack(direction=COLUMN))
     content_box_ref[0] = content_box
     _populate(content_box, date, equipment_list, app, _refresh)
 
-    scroll = toga.ScrollContainer(content=content_box, style=Pack(flex=1))
-
-    root = toga.Box(
-        children=[delete_btn, scroll],
-        style=Pack(direction=COLUMN, flex=1),
+    scroll_content = toga.Box(
+        children=[delete_btn, content_box],
+        style=Pack(direction=COLUMN),
     )
+    scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
+    root = toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
     return root
 
 

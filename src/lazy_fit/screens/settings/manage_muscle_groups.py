@@ -34,16 +34,16 @@ def build(app: toga.App) -> toga.Box:
 
     add_btn = toga.Button(t("add"), on_press=on_add, style=Pack(margin=8))
 
-    list_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
+    list_box = toga.Box(style=Pack(direction=COLUMN))
     list_box_ref[0] = list_box
     _populate(list_box, app, _refresh)
 
-    scroll = toga.ScrollContainer(content=list_box, style=Pack(flex=1))
-
-    root = toga.Box(
-        children=[add_btn, scroll],
-        style=Pack(direction=COLUMN, flex=1),
+    scroll_content = toga.Box(
+        children=[add_btn, list_box],
+        style=Pack(direction=COLUMN),
     )
+    scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
+    root = toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
     return root
 
 
