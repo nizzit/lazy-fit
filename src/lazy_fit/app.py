@@ -10,6 +10,7 @@ from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t, set_language
 from lazy_fit.db.connection import set_db_path, init_db
+from lazy_fit.db.models import get_setting
 
 
 class LazyFitApp(toga.App):
@@ -23,7 +24,7 @@ class LazyFitApp(toga.App):
         init_db()
 
         # ------------------------------------------------------------------ i18n
-        set_language("ru")
+        set_language(get_setting("language", "ru"))
 
         # ------------------------------------------------------------------ nav stack
         # Each entry: (content_widget, title_str)

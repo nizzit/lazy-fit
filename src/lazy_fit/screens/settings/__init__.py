@@ -7,6 +7,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t, set_language, get_language
+from lazy_fit.db.models import set_setting
 
 
 def build(app: toga.App) -> toga.Box:
@@ -31,6 +32,7 @@ def build(app: toga.App) -> toga.Box:
     def on_lang_toggle(widget: toga.Widget) -> None:
         new_lang = "en" if get_language() == "ru" else "ru"
         set_language(new_lang)
+        set_setting("language", new_lang)
         from lazy_fit.screens.home import build as build_home
         app.nav_replace_root(build_home(app), t("app_name"))
 
