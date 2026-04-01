@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 import toga
@@ -46,7 +47,11 @@ def _fill(container: toga.Box, app: toga.App, on_changed: object) -> None:
 def _add_date_section(
     container: toga.Box, date: str, app: toga.App, on_changed: object
 ) -> None:
-    container.add(toga.Label(date, style=Pack(font_size=15, margin=(12, 8, 2, 8))))
+    try:
+        display_date = datetime.strptime(date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    except ValueError:
+        display_date = date
+    container.add(toga.Label(display_date, style=Pack(font_size=15, margin=(12, 8, 2, 8))))
 
     def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
         async def _confirm(app: toga.App, **kwargs: object) -> None:
