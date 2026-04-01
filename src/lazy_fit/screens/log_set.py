@@ -11,6 +11,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.widgets import StepperInput
 from lazy_fit.db.models import (
     Exercise,
     WorkoutSet,
@@ -182,7 +183,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     )
 
     # Input area
-    value_input = toga.NumberInput(
+    value_input = StepperInput(
         min=0,
         step=1,
         value=last_value if last_value is not None else 0,

@@ -9,6 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.widgets import StepperInput
 from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set
 
 
@@ -22,7 +23,7 @@ def build(
 
     # Value input
     initial_value = ws.reps if ws.exercise_type == "reps" else (ws.duration_sec or 0)
-    value_input = toga.NumberInput(
+    value_input = StepperInput(
         min=0,
         step=1,
         value=initial_value,

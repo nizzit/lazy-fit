@@ -3,7 +3,7 @@
 #  Requires: uv, Java JDK, Android SDK (set ANDROID_HOME)
 # ============================================================
 
-.PHONY: help run dev create build run-android package clean logs
+.PHONY: help dev create build run package clean logs
 
 # ── defaults ────────────────────────────────────────────────
 APP      := lazy-fit
@@ -22,8 +22,7 @@ help:
 	@echo "  -------"
 	@echo "  make create       briefcase create android   (first-time setup)"
 	@echo "  make build        briefcase build android    (compile APK)"
-	@echo "  make install      briefcase run android --no-run (install only)"
-	@echo "  make run-android  briefcase run android      (build + install + launch)"
+	@echo "  make run          briefcase run android      (build + install + launch)"
 	@echo "  make package      briefcase package android  (release APK)"
 	@echo "  make logs         adb logcat -s toga         (stream app logs)"
 	@echo ""
@@ -45,7 +44,7 @@ build:
 	uv run briefcase build $(PLATFORM)
 
 # ── android: build + install + launch ───────────────────────
-run-android:
+run:
 	uv run briefcase run $(PLATFORM)
 
 # ── android: release APK (signed, ready for distribution) ───
