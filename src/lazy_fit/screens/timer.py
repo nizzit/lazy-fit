@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 from typing import Callable
@@ -87,62 +88,31 @@ def build(
         wake_lock_ref[0] = None
         _do_finish()
 
-    def _tick() -> None:
-        if not running[0]:
-            return
-
-        if mode == "stopwatch":
-            elapsed[0] += 1
-            if time_label_ref[0]:
-                time_label_ref[0].text = _fmt_time(elapsed[0])
-
-            async def _wait(app: toga.App, **kwargs: object) -> None:
-                import asyncio
-
-                await asyncio.sleep(1)
-                _tick()
-
-            app.add_background_task(_wait)
-
-        else:
-            elapsed[0] -= 1
-            if elapsed[0] <= 0:
-                elapsed[0] = 0
-                running[0] = False
-                _release_wake_lock(wake_lock_ref[0])
-                wake_lock_ref[0] = None
+    async def _timer_loop() -> None:
+        await asyncio.sleep(1)
+        while running[0]:
+            if mode == "stopwatch":
+                elapsed[0] += 1
                 if time_label_ref[0]:
-                    time_label_ref[0].text = _fmt_time(0)
-
-                async def _auto_finish(app: toga.App, **kwargs: object) -> None:
-                    import asyncio
-
+                    time_label_ref[0].text = _fmt_time(elapsed[0])
+            else:
+                elapsed[0] -= 1
+                if elapsed[0] <= 0:
+                    elapsed[0] = 0
+                    running[0] = False
+                    _release_wake_lock(wake_lock_ref[0])
+                    wake_lock_ref[0] = None
+                    if time_label_ref[0]:
+                        time_label_ref[0].text = _fmt_time(0)
                     await asyncio.sleep(0.5)
                     _do_finish()
-
-                app.add_background_task(_auto_finish)
-                return
-
-            if time_label_ref[0]:
-                time_label_ref[0].text = _fmt_time(elapsed[0])
-
-            async def _wait_cd(app: toga.App, **kwargs: object) -> None:
-                import asyncio
-
-                await asyncio.sleep(1)
-                _tick()
-
-            app.add_background_task(_wait_cd)
+                    return
+                if time_label_ref[0]:
+                    time_label_ref[0].text = _fmt_time(elapsed[0])
+            await asyncio.sleep(1)
 
     wake_lock_ref[0] = _acquire_wake_lock()
-
-    async def _start(app: toga.App, **kwargs: object) -> None:
-        import asyncio
-
-        await asyncio.sleep(1)
-        _tick()
-
-    app.add_background_task(_start)
+    asyncio.create_task(_timer_loop())
 
     time_label = toga.Label(
         _fmt_time(elapsed[0]),

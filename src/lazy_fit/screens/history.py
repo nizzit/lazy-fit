@@ -53,19 +53,16 @@ def _add_date_section(
         display_date = date
     container.add(toga.Label(display_date, style=Pack(font_size=15, margin=(12, 8, 2, 8))))
 
-    def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
-        async def _confirm(app: toga.App, **kwargs: object) -> None:
-            result = await app.dialog(
-                toga.ConfirmDialog(
-                    t("delete_workout"),
-                    t("confirm_delete_workout").format(date=date),
-                )
+    async def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
+        result = await app.dialog(
+            toga.ConfirmDialog(
+                t("delete_workout"),
+                t("confirm_delete_workout").format(date=date),
             )
-            if result:
-                delete_workout_by_date(date)
-                on_changed()  # type: ignore[operator]
-
-        app.add_background_task(_confirm)
+        )
+        if result:
+            delete_workout_by_date(date)
+            on_changed()  # type: ignore[operator]
 
     container.add(
         toga.Button(

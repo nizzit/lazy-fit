@@ -33,19 +33,16 @@ def build(app: toga.App, date: str) -> toga.Box:
             box.remove(child)
         _populate(box, date, equipment_list, app, _refresh)
 
-    def on_delete_workout(widget: toga.Widget) -> None:
-        async def _confirm(app: toga.App, **kwargs: object) -> None:
-            result = await app.dialog(
-                toga.ConfirmDialog(
-                    t("delete_workout"),
-                    t("confirm_delete_workout").format(date=date),
-                )
+    async def on_delete_workout(widget: toga.Widget) -> None:
+        result = await app.dialog(
+            toga.ConfirmDialog(
+                t("delete_workout"),
+                t("confirm_delete_workout").format(date=date),
             )
-            if result:
-                delete_workout_by_date(date)
-                app.nav_pop()
-
-        app.add_background_task(_confirm)
+        )
+        if result:
+            delete_workout_by_date(date)
+            app.nav_pop()
 
     delete_btn = toga.Button(
         t("delete_workout"),
@@ -106,16 +103,13 @@ def _add_set_row(
     if ws.equipment_name:
         value_text += f"  [{ws.equipment_name}]"
 
-    def on_delete(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
-        async def _confirm(app: toga.App, **kwargs: object) -> None:
-            result = await app.dialog(
-                toga.ConfirmDialog(t("delete"), t("confirm_delete_set"))
-            )
-            if result:
-                delete_workout_set(ws.id)
-                refresh_fn()
-
-        app.add_background_task(_confirm)
+    async def on_delete(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
+        result = await app.dialog(
+            toga.ConfirmDialog(t("delete"), t("confirm_delete_set"))
+        )
+        if result:
+            delete_workout_set(ws.id)
+            refresh_fn()
 
     def on_edit(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
         from lazy_fit.screens.edit_set import build as build_edit
