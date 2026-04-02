@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
-from lazy_fit.db.models import get_all_muscle_groups, MuscleGroup
+from lazy_fit.db.models import get_all_muscle_groups, get_weekly_sets_count_for_muscle_group, MuscleGroup
 
 
 def build(app: toga.App) -> toga.Box:
@@ -41,13 +41,9 @@ def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
 
     label_text = mg.name
     if mg.weekly_sets:
-        label_text += f"  —  " + t("weekly_sets_target").format(n=mg.weekly_sets)
+        done = get_weekly_sets_count_for_muscle_group(mg.id)
+        label_text += "  —  " + t("weekly_sets_target").format(done=done, target=mg.weekly_sets)
 
-    row = toga.Box(
-        children=[
-            toga.Label(label_text, style=Pack(flex=1, margin=4)),
-            toga.Button("›", on_press=on_tap, style=Pack(margin=4, width=40)),
-        ],
-        style=Pack(direction=ROW, margin=8),
+    container.add(
+        toga.Button(label_text, on_press=on_tap, style=Pack(margin=8, flex=1))
     )
-    container.add(row)

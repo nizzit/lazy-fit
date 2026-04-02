@@ -51,8 +51,6 @@ def _add_date_section(
         display_date = datetime.strptime(date, "%Y-%m-%d").strftime("%d-%m-%Y")
     except ValueError:
         display_date = date
-    container.add(toga.Label(display_date, style=Pack(font_size=15, margin=(12, 8, 2, 8))))
-
     async def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
         result = await app.dialog(
             toga.ConfirmDialog(
@@ -65,10 +63,16 @@ def _add_date_section(
             on_changed()  # type: ignore[operator]
 
     container.add(
-        toga.Button(
-            t("delete_workout"),
-            on_press=on_delete_workout,
-            style=Pack(margin=(0, 8, 4, 8)),
+        toga.Box(
+            children=[
+                toga.Label(display_date, style=Pack(flex=1, font_size=15, margin=(12, 8, 2, 8))),
+                toga.Button(
+                    t("delete_workout"),
+                    on_press=on_delete_workout,
+                    style=Pack(margin=(8, 8, 2, 8)),
+                ),
+            ],
+            style=Pack(direction=ROW),
         )
     )
 

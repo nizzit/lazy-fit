@@ -10,7 +10,7 @@ strings: dict[str, str] = {
 
     # Muscle groups
     "muscle_groups": "Muscle Groups",
-    "weekly_sets_target": "Target: {n} sets/week",
+    "weekly_sets_target": "{done}/{target} sets/week",
     "no_muscle_groups": "No muscle groups. Add them in Settings.",
 
     # Exercises

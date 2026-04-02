@@ -305,6 +305,26 @@ def set_setting(key: str, value: str) -> None:
 
 # ---------------------------------------------------------------------------
 
+def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
+    """Return the number of sets logged this week (Mon–Sun) for *mg_id*."""
+    from datetime import date, timedelta
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    row = get_connection().execute(
+        """
+        SELECT COUNT(*) AS cnt
+        FROM workout_set ws
+        JOIN exercise e ON e.id = ws.exercise_id
+        WHERE e.muscle_group_id = ?
+          AND ws.date >= ?
+          AND ws.date <= ?
+        """,
+        (mg_id, week_start.isoformat(), week_end.isoformat()),
+    ).fetchone()
+    return row["cnt"] if row else 0
+
+
 def get_last_value_for_exercise(exercise_id: int) -> Optional[int]:
     """Return the most recent reps or duration_sec for *exercise_id*, or None."""
     row = get_connection().execute(
