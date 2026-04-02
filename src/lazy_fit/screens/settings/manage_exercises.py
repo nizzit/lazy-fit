@@ -98,6 +98,12 @@ def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> Non
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
+    def on_delete(widget: toga.Widget) -> None:
+        if ex:
+            delete_exercise(ex.id)
+            refresh_fn()  # type: ignore[operator]
+            app.nav_pop()
+
     form = build_entity_form(
         [
             build_form_field("name", name_input),
@@ -107,6 +113,7 @@ def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> Non
         error_label,
         on_save,
         on_cancel,
+        on_delete=on_delete if ex else None,
     )
     title = t("edit") if ex else t("add")
     app.nav_push(form, f"{title} — {t('manage_exercises')}")

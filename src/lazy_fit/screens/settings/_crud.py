@@ -65,18 +65,21 @@ def build_entity_form(
     error_label: toga.Label,
     on_save: Callable,
     on_cancel: Callable,
+    on_delete: Optional[Callable] = None,
 ) -> toga.Box:
+    action_buttons: list[toga.Widget] = [
+        toga.Button(t("save"), on_press=on_save, style=Pack(margin=8)),
+        toga.Button(t("cancel"), on_press=on_cancel, style=Pack(margin=8)),
+    ]
+    if on_delete is not None:
+        action_buttons.append(
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=8))
+        )
     return toga.Box(
         children=[
             *fields,
             error_label,
-            toga.Box(
-                children=[
-                    toga.Button(t("save"), on_press=on_save, style=Pack(margin=8)),
-                    toga.Button(t("cancel"), on_press=on_cancel, style=Pack(margin=8)),
-                ],
-                style=Pack(direction=ROW, margin=8),
-            ),
+            toga.Box(children=action_buttons, style=Pack(direction=ROW, margin=8)),
         ],
         style=Pack(direction=COLUMN, margin=16),
     )

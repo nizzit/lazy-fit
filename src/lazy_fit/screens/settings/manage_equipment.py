@@ -63,11 +63,18 @@ def _show_form(app: toga.App, eq: Optional[Equipment], refresh_fn: object) -> No
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
+    def on_delete(widget: toga.Widget) -> None:
+        if eq:
+            delete_equipment(eq.id)
+            refresh_fn()  # type: ignore[operator]
+            app.nav_pop()
+
     form = build_entity_form(
         [build_form_field("name", name_input)],
         error_label,
         on_save,
         on_cancel,
+        on_delete=on_delete if eq else None,
     )
     title = t("edit") if eq else t("add")
     app.nav_push(form, f"{title} — {t('manage_equipment')}")
