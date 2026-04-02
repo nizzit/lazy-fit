@@ -5,6 +5,7 @@ strings: dict[str, str] = {
 
     # Home
     "start_workout": "Start Workout",
+    "continue_workout": "Continue Workout",
     "history": "History",
     "settings": "Settings",
 

@@ -325,6 +325,27 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
     return row["cnt"] if row else 0
 
 
+def get_last_exercise_today() -> Optional[Exercise]:
+    """Return the Exercise from the most recent workout_set logged today, or None."""
+    from datetime import date
+    today = date.today().isoformat()
+    row = get_connection().execute(
+        """
+        SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
+        FROM workout_set ws
+        JOIN exercise e ON e.id = ws.exercise_id
+        JOIN muscle_group mg ON mg.id = e.muscle_group_id
+        WHERE ws.date = ?
+        ORDER BY ws.order_index DESC, ws.created_at DESC
+        LIMIT 1
+        """,
+        (today,),
+    ).fetchone()
+    if row is None:
+        return None
+    return Exercise(**dict(row))
+
+
 def get_last_value_for_exercise(exercise_id: int) -> Optional[int]:
     """Return the most recent reps or duration_sec for *exercise_id*, or None."""
     row = get_connection().execute(

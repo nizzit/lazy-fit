@@ -61,6 +61,9 @@ class LazyFitApp(toga.App):
         """Pop the top screen off the navigation stack."""
         if len(self._nav_stack) > 1:
             self._nav_stack.pop()
+            if len(self._nav_stack) == 1:
+                from lazy_fit.screens.home import build as build_home
+                self._nav_stack[0] = (build_home(self), t("app_name"), None, True)
             self._render_current()
 
     def nav_replace_root(self, widget: toga.Widget, title: str) -> None:
