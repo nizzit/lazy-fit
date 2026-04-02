@@ -100,10 +100,14 @@ class LazyFitApp(toga.App):
             banner_btn = toga.Button(
                 f"⏱ {at['banner_text']}",
                 on_press=lambda w: self.restore_timer(),
-                style=Pack(margin=4),
+                style=Pack(margin=4, width=120, background_color="#66bb6a"),
             )
             at["banner_label"] = banner_btn
-            children.append(banner_btn)
+            banner_row = toga.Box(
+                children=[banner_btn],
+                style=Pack(direction=COLUMN, align_items="center"),
+            )
+            children.append(banner_row)
 
         can_go_back = len(self._nav_stack) > 1 and show_back
         if can_go_back:
