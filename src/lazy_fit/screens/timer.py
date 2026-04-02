@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from typing import Callable
+
+_log = logging.getLogger("lazy_fit")
 
 import toga
 from toga.style import Pack
@@ -14,20 +17,19 @@ def _acquire_wake_lock() -> object | None:
     if sys.platform != "android":
         return None
     try:
-        from jnius import autoclass  # type: ignore[import-untyped]
+        from android.os import PowerManager  # type: ignore[import-untyped]
+        from org.beeware.android import MainActivity  # type: ignore[import-untyped]
 
-        Context = autoclass("android.content.Context")
-        PythonActivity = autoclass("org.beeware.android.MainActivity")
-        activity = PythonActivity.sActivity
-        power_manager = activity.getSystemService(Context.POWER_SERVICE)
-        PowerManager = autoclass("android.os.PowerManager")
+        activity = MainActivity.singletonThis
+        power_manager = activity.getSystemService("power")
         wake_lock = power_manager.newWakeLock(
             PowerManager.SCREEN_DIM_WAKE_LOCK,
             "LazyFit:TimerWakeLock",
         )
         wake_lock.acquire()
         return wake_lock
-    except Exception:
+    except Exception as e:
+        _log.exception("Failed to acquire wake lock: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -96,6 +98,7 @@ def build(
 
             async def _wait(app: toga.App, **kwargs: object) -> None:
                 import asyncio
+
                 await asyncio.sleep(1)
                 _tick()
 
@@ -113,6 +116,7 @@ def build(
 
                 async def _auto_finish(app: toga.App, **kwargs: object) -> None:
                     import asyncio
+
                     await asyncio.sleep(0.5)
                     _do_finish()
 
@@ -124,6 +128,7 @@ def build(
 
             async def _wait_cd(app: toga.App, **kwargs: object) -> None:
                 import asyncio
+
                 await asyncio.sleep(1)
                 _tick()
 
@@ -133,6 +138,7 @@ def build(
 
     async def _start(app: toga.App, **kwargs: object) -> None:
         import asyncio
+
         await asyncio.sleep(1)
         _tick()
 
