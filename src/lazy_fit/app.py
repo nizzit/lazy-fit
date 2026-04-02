@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable, Optional
 
 import toga
 from toga.style import Pack
@@ -26,9 +27,17 @@ class LazyFitApp(toga.App):
         # ------------------------------------------------------------------ i18n
         set_language(get_setting("language", "ru"))
 
+        # ------------------------------------------------------------------ active timer
+        # Set by timer.py when a timer starts; cleared when it stops.
+        # Structure: {running, elapsed, mode, wake_lock_ref, banner_label,
+        #             banner_text, screen_widget, screen_title, minimize_fn}
+        self.active_timer: Optional[dict] = None
+
         # ------------------------------------------------------------------ nav stack
-        # Each entry: (content_widget, title_str)
-        self._nav_stack: list[tuple[toga.Widget, str]] = []
+        # Each entry: (content_widget, title_str, optional_back_fn, show_back)
+        # optional_back_fn overrides the default nav_pop for that screen.
+        # show_back=False hides the back button entirely.
+        self._nav_stack: list[tuple[toga.Widget, str, Optional[Callable], bool]] = []
 
         # ------------------------------------------------------------------ main window
         self.main_window = toga.MainWindow(title=t("app_name"))
@@ -36,16 +45,16 @@ class LazyFitApp(toga.App):
         # Build home and push it as root
         from lazy_fit.screens.home import build as build_home
         home = build_home(self)
-        self._nav_stack = [(home, t("app_name"))]
+        self._nav_stack = [(home, t("app_name"), None, True)]
         self._render_current()
 
         self.main_window.show()
 
     # ---------------------------------------------------------------------- navigation API
 
-    def nav_push(self, widget: toga.Widget, title: str) -> None:
+    def nav_push(self, widget: toga.Widget, title: str, back_fn: Optional[Callable] = None, show_back: bool = True) -> None:
         """Push a new screen onto the navigation stack."""
-        self._nav_stack.append((widget, title))
+        self._nav_stack.append((widget, title, back_fn, show_back))
         self._render_current()
 
     def nav_pop(self) -> None:
@@ -56,36 +65,65 @@ class LazyFitApp(toga.App):
 
     def nav_replace_root(self, widget: toga.Widget, title: str) -> None:
         """Replace the entire stack with a single new root screen."""
-        self._nav_stack = [(widget, title)]
+        self.cancel_active_timer()
+        self._nav_stack = [(widget, title, None, True)]
         self._render_current()
+
+    def restore_timer(self) -> None:
+        """Re-push the minimised timer screen onto the nav stack."""
+        if not self.active_timer:
+            return
+        at = self.active_timer
+        self._nav_stack.append((at["screen_widget"], at["screen_title"], at["minimize_fn"], at["show_back"]))
+        self._render_current()
+
+    def cancel_active_timer(self) -> None:
+        """Stop and discard any background timer (e.g. on language switch)."""
+        if self.active_timer is None:
+            return
+        from lazy_fit.android_api import release_wake_lock
+        self.active_timer["running"][0] = False
+        release_wake_lock(self.active_timer["wake_lock_ref"][0])
+        self.active_timer["wake_lock_ref"][0] = None
+        self.active_timer = None
 
     def _render_current(self) -> None:
         """Render the top-of-stack screen inside the main window."""
-        content, title = self._nav_stack[-1]
+        content, title, back_fn, show_back = self._nav_stack[-1]
         self.main_window.title = title
 
-        can_go_back = len(self._nav_stack) > 1
+        children: list[toga.Widget] = []
 
+        # Show timer banner at the very top when a timer is running but not on screen.
+        at = self.active_timer
+        if at is not None and content is not at["screen_widget"]:
+            banner_btn = toga.Button(
+                f"⏱ {at['banner_text']}",
+                on_press=lambda w: self.restore_timer(),
+                style=Pack(margin=4),
+            )
+            at["banner_label"] = banner_btn
+            children.append(banner_btn)
+
+        can_go_back = len(self._nav_stack) > 1 and show_back
         if can_go_back:
             back_btn = toga.Button(
                 f"‹ {t('back')}",
-                on_press=lambda w: self.nav_pop(),
+                on_press=lambda w: (back_fn() if back_fn else self.nav_pop()),
                 style=Pack(margin=4),
             )
             nav_bar = toga.Box(
                 children=[back_btn],
                 style=Pack(direction=ROW, margin=4),
             )
-            wrapper = toga.Box(
-                children=[nav_bar, content],
-                style=Pack(direction=COLUMN, flex=1),
-            )
-        else:
-            wrapper = toga.Box(
-                children=[content],
-                style=Pack(direction=COLUMN, flex=1),
-            )
+            children.append(nav_bar)
 
+        children.append(content)
+
+        wrapper = toga.Box(
+            children=children,
+            style=Pack(direction=COLUMN, flex=1),
+        )
         self.main_window.content = wrapper
 
 

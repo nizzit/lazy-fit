@@ -46,15 +46,12 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     def on_start_timer(widget: toga.Widget) -> None:
         from lazy_fit.screens.timer import build as build_timer
 
-        app.nav_push(
-            build_timer(
-                app,
-                mode="stopwatch",
-                on_done=_on_exercise_timer_done,
-                stop_label=t("timer_stop"),
-                header=exercise.name,
-            ),
-            t("timer"),
+        build_timer(
+            app,
+            mode="stopwatch",
+            on_done=_on_exercise_timer_done,
+            stop_label=t("timer_stop"),
+            header=exercise.name,
         )
 
     # ------------------------------------------------------------------ rest timer
@@ -71,20 +68,21 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         if secs <= 0:
             return
 
-        app.nav_push(
-            build_timer(
-                app,
-                mode="countdown",
-                on_done=lambda: None,
-                stop_label=t("rest_timer_skip"),
-                initial_secs=secs,
-                header=t("rest_timer"),
-            ),
-            t("rest_timer"),
+        build_timer(
+            app,
+            mode="countdown",
+            on_done=lambda: None,
+            stop_label=t("rest_timer_skip"),
+            initial_secs=secs,
+            header=t("rest_timer"),
         )
 
     # ------------------------------------------------------------------ save
     def on_save(widget: toga.Widget) -> None:
+        # Cancel any running countdown (rest timer) before saving a new set.
+        if getattr(app, "active_timer", None) and app.active_timer.get("mode") == "countdown":
+            app.cancel_active_timer()
+            app._render_current()
         raw_value = value_input_ref[0].value if value_input_ref[0] else None
         try:
             int_value = int(raw_value) if raw_value is not None else 0

@@ -35,6 +35,7 @@ strings: dict[str, str] = {
     "timer_start": "Start",
     "timer_stop": "Stop",
     "timer_reset": "Reset",
+    "timer_return": "Return",
 
     # History
     "workout_history": "Workout History",
