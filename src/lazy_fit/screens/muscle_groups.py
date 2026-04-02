@@ -7,7 +7,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
-from lazy_fit.db.models import get_all_muscle_groups, get_weekly_sets_count_for_muscle_group, MuscleGroup
+from lazy_fit.db.models import get_all_muscle_groups, MuscleGroup
 
 
 def build(app: toga.App) -> toga.Box:
@@ -39,11 +39,6 @@ def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
         from lazy_fit.screens.exercises import build as build_ex
         app.nav_push(build_ex(app, mg), mg.name)
 
-    label_text = mg.name
-    if mg.weekly_sets:
-        done = get_weekly_sets_count_for_muscle_group(mg.id)
-        label_text += "  —  " + t("weekly_sets_target").format(done=done, target=mg.weekly_sets)
-
     container.add(
-        toga.Button(label_text, on_press=on_tap, style=Pack(margin=8, flex=1))
+        toga.Button(mg.name, on_press=on_tap, style=Pack(margin=8, flex=1))
     )

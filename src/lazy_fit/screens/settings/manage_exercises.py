@@ -60,9 +60,6 @@ def _add_row(
     app: toga.App,
     refresh_fn: object,
 ) -> None:
-    type_label = t("type_reps") if ex.type == "reps" else t("type_time")
-    label = f"{ex.name}  ·  {ex.muscle_group_name}  ({type_label})"
-
     def on_edit(widget: toga.Widget, ex: Exercise = ex) -> None:
         _show_form(app, ex, refresh_fn)
 
@@ -72,8 +69,7 @@ def _add_row(
 
     row = toga.Box(
         children=[
-            toga.Label(label, style=Pack(flex=1, margin=4)),
-            toga.Button(t("edit"), on_press=on_edit, style=Pack(margin=4)),
+            toga.Button(ex.name, on_press=on_edit, style=Pack(flex=1, margin=4)),
             toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=4)),
         ],
         style=Pack(direction=ROW, margin=4),

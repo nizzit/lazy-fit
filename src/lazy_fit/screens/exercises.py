@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.db.models import get_exercises_by_muscle_group, MuscleGroup, Exercise
@@ -39,14 +39,6 @@ def _add_exercise_row(app: toga.App, container: toga.Box, ex: Exercise) -> None:
         from lazy_fit.screens.log_set import build as build_log
         app.nav_push(build_log(app, ex), ex.name)
 
-    type_label = t("type_reps") if ex.type == "reps" else t("type_time")
-    label_text = f"{ex.name}  ({type_label})"
-
-    row = toga.Box(
-        children=[
-            toga.Label(label_text, style=Pack(flex=1, margin=4)),
-            toga.Button("›", on_press=on_tap, style=Pack(margin=4, width=40)),
-        ],
-        style=Pack(direction=ROW, margin=8),
+    container.add(
+        toga.Button(ex.name, on_press=on_tap, style=Pack(margin=8, flex=1))
     )
-    container.add(row)
