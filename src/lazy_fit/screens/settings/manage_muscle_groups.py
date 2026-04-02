@@ -6,7 +6,6 @@ from typing import Optional
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
 from lazy_fit.db.models import (
@@ -16,68 +15,32 @@ from lazy_fit.db.models import (
     update_muscle_group,
     delete_muscle_group,
 )
+from lazy_fit.screens.settings._crud import (
+    build_crud_screen,
+    build_list_row,
+    build_form_field,
+    build_entity_form,
+)
 
 
 def build(app: toga.App) -> toga.Box:
-    list_box_ref: list[Optional[toga.Box]] = [None]
-
-    def _refresh() -> None:
-        box = list_box_ref[0]
-        if box is None:
-            return
-        for child in list(box.children):
-            box.remove(child)
-        _populate(box, app, _refresh)
-
-    def on_add(widget: toga.Widget) -> None:
-        _show_form(app, None, _refresh)
-
-    add_btn = toga.Button(t("add"), on_press=on_add, style=Pack(margin=8))
-
-    list_box = toga.Box(style=Pack(direction=COLUMN))
-    list_box_ref[0] = list_box
-    _populate(list_box, app, _refresh)
-
-    scroll_content = toga.Box(
-        children=[add_btn, list_box],
-        style=Pack(direction=COLUMN),
-    )
-    scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
-    root = toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
-    return root
+    return build_crud_screen(app, _populate, _show_form)
 
 
 def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
     for mg in get_all_muscle_groups():
-        _add_row(box, mg, app, refresh_fn)
 
+        def on_edit(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
+            _show_form(app, mg, refresh_fn)
 
-def _add_row(
-    container: toga.Box,
-    mg: MuscleGroup,
-    app: toga.App,
-    refresh_fn: object,
-) -> None:
-    def on_edit(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
-        _show_form(app, mg, refresh_fn)
+        def on_delete(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
+            delete_muscle_group(mg.id)
+            refresh_fn()  # type: ignore[operator]
 
-    def on_delete(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
-        delete_muscle_group(mg.id)
-        refresh_fn()
-
-    row = toga.Box(
-        children=[
-            toga.Button(mg.name, on_press=on_edit, style=Pack(flex=1, margin=4)),
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=4)),
-        ],
-        style=Pack(direction=ROW, margin=4),
-    )
-    container.add(row)
+        box.add(build_list_row(mg.name, on_edit, on_delete))
 
 
 def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> None:
-    """Push an add/edit form screen."""
-
     name_input = toga.TextInput(
         value=mg.name if mg else "",
         placeholder=t("name"),
@@ -89,7 +52,6 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         value=mg.weekly_sets if (mg and mg.weekly_sets) else 0,
         style=Pack(flex=1, margin=4),
     )
-
     error_label = toga.Label("", style=Pack(margin=4, color="red"))
 
     def on_save(widget: toga.Widget) -> None:
@@ -110,33 +72,20 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         else:
             create_muscle_group(name, ws)
 
-        refresh_fn()
+        refresh_fn()  # type: ignore[operator]
         app.nav_pop()
 
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    form = toga.Box(
-        children=[
-            toga.Box(
-                children=[toga.Label(t("name"), style=Pack(margin=4, width=140)), name_input],
-                style=Pack(direction=ROW, margin=4),
-            ),
-            toga.Box(
-                children=[toga.Label(t("weekly_sets"), style=Pack(margin=4, width=140)), weekly_input],
-                style=Pack(direction=ROW, margin=4),
-            ),
-            error_label,
-            toga.Box(
-                children=[
-                    toga.Button(t("save"), on_press=on_save, style=Pack(margin=8)),
-                    toga.Button(t("cancel"), on_press=on_cancel, style=Pack(margin=8)),
-                ],
-                style=Pack(direction=ROW, margin=8),
-            ),
+    form = build_entity_form(
+        [
+            build_form_field("name", name_input),
+            build_form_field("weekly_sets", weekly_input),
         ],
-        style=Pack(direction=COLUMN, margin=16),
+        error_label,
+        on_save,
+        on_cancel,
     )
-
     title = t("edit") if mg else t("add")
     app.nav_push(form, f"{title} — {t('manage_muscle_groups')}")
