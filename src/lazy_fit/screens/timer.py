@@ -13,6 +13,8 @@ import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN
 
+from lazy_fit.i18n import t
+
 
 def _acquire_wake_lock() -> object | None:
     if sys.platform != "android":
@@ -44,6 +46,69 @@ def _release_wake_lock(wake_lock: object | None) -> None:
         pass
 
 
+def _request_notification_permission() -> None:
+    if sys.platform != "android":
+        return
+    try:
+        from android.content.pm import PackageManager  # type: ignore[import-untyped]
+        from android.os import Build  # type: ignore[import-untyped]
+        from org.beeware.android import MainActivity  # type: ignore[import-untyped]
+
+        if Build.VERSION.SDK_INT < 33:
+            return
+
+        activity = MainActivity.singletonThis
+        perm = "android.permission.POST_NOTIFICATIONS"
+        if activity.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED:
+            activity.requestPermissions([perm], 42)
+    except Exception as e:
+        _log.exception(
+            "Failed to request notification permission: %s: %s", type(e).__name__, e
+        )
+
+
+def _send_notification(title: str, body: str) -> None:
+    if sys.platform != "android":
+        return
+    try:
+        from android.app import Notification, NotificationChannel, NotificationManager, PendingIntent  # type: ignore[import-untyped]
+        from android.content import Context, Intent  # type: ignore[import-untyped]
+        from java import jclass  # type: ignore[import-untyped]
+        from org.beeware.android import MainActivity  # type: ignore[import-untyped]
+
+        activity = MainActivity.singletonThis
+        nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+
+        channel_id = "lazy_fit_timer"
+        channel = NotificationChannel(
+            channel_id,
+            t("rest_timer"),
+            NotificationManager.IMPORTANCE_HIGH,
+        )
+        nm.createNotificationChannel(channel)
+
+        intent = Intent(activity, activity.getClass())
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        tap_intent = PendingIntent.getActivity(
+            activity,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        NotificationBuilder = jclass("android.app.Notification$Builder")
+        builder = NotificationBuilder(activity, channel_id)
+        builder.setContentTitle(title)
+        builder.setContentText(body)
+        builder.setSmallIcon(activity.getApplicationInfo().icon)
+        builder.setContentIntent(tap_intent)
+        builder.setAutoCancel(True)
+
+        nm.notify(1, builder.build())
+    except Exception as e:
+        _log.exception("Failed to send notification: %s: %s", type(e).__name__, e)
+
+
 def _fmt_time(secs: int) -> str:
     mm = secs // 60
     ss = secs % 60
@@ -65,6 +130,9 @@ def build(
         "stopwatch" — counts up from 0; on_done(elapsed_secs) called on stop.
         "countdown" — counts down from initial_secs; on_done() called on stop or 0.
     """
+
+    if mode == "countdown":
+        _request_notification_permission()
 
     running = [True]
     elapsed = [initial_secs if mode == "countdown" else 0]
@@ -104,6 +172,7 @@ def build(
                     wake_lock_ref[0] = None
                     if time_label_ref[0]:
                         time_label_ref[0].text = _fmt_time(0)
+                    _send_notification(t("rest_timer"), t("rest_timer_done"))
                     await asyncio.sleep(0.5)
                     _do_finish()
                     return

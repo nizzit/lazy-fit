@@ -36,3 +36,4 @@ build_gradle_dependencies = [
 
 [tool.briefcase.app.lazy-fit.permission]
 "android.permission.WAKE_LOCK" = {}
+"android.permission.POST_NOTIFICATIONS" = {}
