@@ -16,8 +16,7 @@ make dev          # equivalent: uv run python main.py
 # Android (requires Java JDK + Android SDK with ANDROID_HOME set)
 make create       # first-time scaffold: briefcase create android
 make build        # compile APK: briefcase build android
-make run-android  # build + install + launch on device/emulator
-make install      # build + install only (no launch)
+make run          # install + launch on device/emulator
 make package      # release APK: briefcase package android
 
 # Stream Android logs
@@ -41,6 +40,7 @@ lazy-fit/
 ├── plans/architecture.md           # Detailed architecture doc
 └── src/lazy_fit/
     ├── app.py                      # LazyFitApp (Toga App) + nav stack
+    ├── widgets.py                  # StepperInput custom widget
     ├── db/
     │   ├── connection.py           # get_connection(), set_db_path(), init_db()
     │   └── models.py               # Dataclasses + CRUD for all entities
@@ -56,12 +56,144 @@ lazy-fit/
         ├── history.py
         ├── workout_detail.py
         ├── edit_set.py
+        ├── timer.py
+        ├── _workout_log.py         # Shared display component (underscore = private module)
         └── settings/
             ├── __init__.py         # Settings menu + language toggle
             ├── manage_muscle_groups.py
             ├── manage_equipment.py
-            └── manage_exercises.py
+            ├── manage_exercises.py
+            └── rest_timer.py
 ```
+
+---
+
+## Code Style
+
+### Module structure
+
+Every non-empty module opens with a single-line docstring using double quotes and an em-dash separator for multi-part descriptions:
+
+```python
+"""Log Set screen — record a set + show today's workout summary."""
+```
+
+Then `from __future__ import annotations` (required for PEP 563 with Python 3.13), then imports.
+
+### Imports
+
+Three blocks separated by blank lines — standard library, third-party, local:
+
+```python
+from __future__ import annotations
+
+import sys
+from datetime import date
+
+import toga
+from toga.style import Pack
+from toga.style.pack import COLUMN, ROW
+
+from lazy_fit.i18n import t
+from lazy_fit.db.models import WorkoutSet, get_all_sets
+```
+
+**Screen-to-screen imports must be deferred** inside handler functions to avoid circular imports:
+
+```python
+def on_tap(widget: toga.Widget) -> None:
+    from lazy_fit.screens.exercises import build as build_exercises
+    app.nav_push(build_exercises(app), t("exercises"))
+```
+
+DB model imports used only inside handlers may also be deferred inside `build()`.
+
+### Type annotations
+
+All function signatures are fully annotated. Use `Optional[T]` (imported from `typing`) for nullable values. Use `list[T]` (lowercase) for list type hints:
+
+```python
+from typing import Callable, Optional
+
+def build(app: toga.App, exercise: Optional[Exercise] = None) -> toga.Box: ...
+def on_save(widget: toga.Widget) -> None: ...
+```
+
+Use `# type: ignore[<code>]` sparingly for unavoidable Toga callback type mismatches.
+
+### Naming conventions
+
+| Entity | Convention | Example |
+|---|---|---|
+| Functions / methods | `snake_case` | `get_all_exercises` |
+| Classes | `PascalCase` | `LazyFitApp`, `WorkoutSet` |
+| Event handlers | `on_<action>` | `on_save`, `on_delete` |
+| Private helpers | `_name` prefix | `_refresh`, `_add_row` |
+| Mutable closure refs | `<name>_ref` suffix | `value_input_ref` |
+| Module-level globals | `_UPPER` or `_lower` | `_DB_PATH`, `_conn`, `_lang` |
+| DB CRUD functions | `get_all_<entity>`, `create_<entity>`, `update_<entity>`, `delete_<entity>` | |
+| Private modules | `_name.py` | `_workout_log.py` |
+
+### Screen pattern
+
+Every screen exports exactly one public function `build(app, ...) -> toga.Box`. Helper functions use `_` prefix:
+
+```python
+def build(app: toga.App) -> toga.Box:
+    def on_something(widget: toga.Widget) -> None:
+        from lazy_fit.screens.other import build as build_other
+        app.nav_push(build_other(app), t("title_key"))
+
+    def _refresh() -> None:
+        ...
+
+    root = toga.Box(children=[...], style=Pack(direction=COLUMN, flex=1))
+    return root
+```
+
+### Mutable closure state
+
+Use a single-element list for any variable that must be mutated by inner functions:
+
+```python
+timer_running = [False]
+elapsed = [0]
+input_ref: list[Optional[toga.NumberInput]] = [None]
+```
+
+### Layout / Pack
+
+Use `Pack(...)` inline via `style=`. Common patterns:
+
+- Root container: `Pack(direction=COLUMN, flex=1)`
+- Form row: `Pack(direction=ROW, margin=4)`
+- Expanding input/label: `Pack(flex=1, margin=4)`
+- Form label: `Pack(margin=4, width=120)`
+- Action button: `Pack(margin=8, width=240)`
+
+### SQL
+
+Multi-line SQL in triple-quoted strings, `?` placeholders, uppercase keywords:
+
+```python
+conn.execute(
+    """
+    SELECT * FROM workout_set
+    WHERE date = ?
+    ORDER BY order_index
+    """,
+    (today,),
+)
+```
+
+### Error handling
+
+- Inline validation: set `error_label.text = t("error_...")` and `return` early.
+- Numeric conversions: catch `(ValueError, TypeError)` and fall back to a safe default.
+- Platform fallbacks (Android wake lock, screen size): use bare `except Exception` with a silent fallback.
+- Destructive actions: use async confirm dialog pattern via `app.add_background_task`.
+- Raise `RuntimeError` for programming errors (e.g., calling `get_connection()` before `set_db_path()`).
+- No logging except `logging.getLogger("lazy_fit")` in `timer.py` for Android-specific paths.
 
 ---
 
@@ -72,27 +204,12 @@ lazy-fit/
 Toga has no built-in router. `LazyFitApp` in `app.py` implements a manual push/pop stack:
 
 ```python
-app.nav_push(widget, title)       # push new screen
-app.nav_pop()                     # go back
+app.nav_push(widget, title)          # push new screen
+app.nav_pop()                        # go back
 app.nav_replace_root(widget, title)  # replace entire stack (used after language switch)
 ```
 
-Every screen is a `build(app) -> toga.Box` factory function (some take extra args like `build(app, exercise)`). The `app` reference is threaded through all screens so they can call navigation methods.
-
-### Screen pattern
-
-```python
-def build(app: toga.App) -> toga.Box:
-    def on_something(widget: toga.Widget) -> None:
-        from lazy_fit.screens.other import build as build_other
-        app.nav_push(build_other(app), t("title_key"))
-
-    root = toga.Box(children=[...], style=Pack(direction=COLUMN, flex=1))
-    return root
-```
-
-- Imports of other screens are **deferred inside handlers** (inside functions), not at module top-level — this avoids circular imports and speeds up startup.
-- Mutable state inside a screen is stored in `list` of one element (e.g., `timer_running = [False]`), a common Python closure workaround for mutating variables from inner functions.
+The back button is injected automatically by `_render_current()` in `app.py` when the stack has more than one entry — **do not add your own back buttons** in screens.
 
 ### Database
 
@@ -142,17 +259,6 @@ Cascade deletes: deleting a `muscle_group` cascades to `exercise`, which cascade
 
 ---
 
-## Toga / UI Conventions
-
-- Layout uses `Pack` from `toga.style.pack` — `direction=COLUMN|ROW`, `flex=1`, `margin`, `align_items`
-- `toga.ScrollContainer` wraps scrollable lists
-- `toga.Selection` is used for dropdowns (equipment picker)
-- `toga.NumberInput` for numeric inputs (reps / duration)
-- Buttons for navigation and actions — no swipe gestures (Toga limitation)
-- The back button is injected automatically by `_render_current()` in `app.py` when the stack has more than one entry — **don't add your own back buttons** in screens
-
----
-
 ## Gotchas
 
 - **No hot-reload**: each code change on desktop requires re-running `make dev`. Android builds are slow — iterate on desktop first.
@@ -163,3 +269,4 @@ Cascade deletes: deleting a `muscle_group` cascades to `exercise`, which cascade
 - **SQLite on Android**: the DB path must be set via `set_db_path()` before any query. On desktop, the data directory auto-creates; on Android, `self.paths.data` provides the correct sandboxed path.
 - **`sqlite3.Row` dict access**: use `dict(row)` to unpack rows into dataclass constructors, or access by column name `row["name"]`.
 - **`check_same_thread=False`**: the SQLite connection allows cross-thread access — Toga background tasks run on different threads.
+- **Ruff**: present in the environment (`uv run ruff`) but no `[tool.ruff]` config committed — runs with defaults. Add `# noqa: E402` only for post-`sys.path`-manipulation imports (as in `main.py`).
