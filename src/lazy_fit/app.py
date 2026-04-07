@@ -10,7 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t, set_language
-from lazy_fit.db.connection import set_db_path, init_db
+from lazy_fit.db.connection import set_db_path, init_db, migrate_to_many_muscle_groups
 from lazy_fit.db.models import get_setting
 
 
@@ -44,6 +44,7 @@ class LazyFitApp(toga.App):
 
         # Build home and push it as root
         from lazy_fit.screens.home import build as build_home
+
         home = build_home(self)
         self._nav_stack = [(home, t("app_name"), None, True)]
         self._render_current()
@@ -52,7 +53,13 @@ class LazyFitApp(toga.App):
 
     # ---------------------------------------------------------------------- navigation API
 
-    def nav_push(self, widget: toga.Widget, title: str, back_fn: Optional[Callable] = None, show_back: bool = True) -> None:
+    def nav_push(
+        self,
+        widget: toga.Widget,
+        title: str,
+        back_fn: Optional[Callable] = None,
+        show_back: bool = True,
+    ) -> None:
         """Push a new screen onto the navigation stack."""
         self._nav_stack.append((widget, title, back_fn, show_back))
         self._render_current()
@@ -63,6 +70,7 @@ class LazyFitApp(toga.App):
             self._nav_stack.pop()
             if len(self._nav_stack) == 1:
                 from lazy_fit.screens.home import build as build_home
+
                 self._nav_stack[0] = (build_home(self), t("app_name"), None, True)
             self._render_current()
 
@@ -77,7 +85,14 @@ class LazyFitApp(toga.App):
         if not self.active_timer:
             return
         at = self.active_timer
-        self._nav_stack.append((at["screen_widget"], at["screen_title"], at["minimize_fn"], at["show_back"]))
+        self._nav_stack.append(
+            (
+                at["screen_widget"],
+                at["screen_title"],
+                at["minimize_fn"],
+                at["show_back"],
+            )
+        )
         self._render_current()
 
     def cancel_active_timer(self) -> None:
@@ -85,6 +100,7 @@ class LazyFitApp(toga.App):
         if self.active_timer is None:
             return
         from lazy_fit.android_api import release_wake_lock
+
         self.active_timer["running"][0] = False
         release_wake_lock(self.active_timer["wake_lock_ref"][0])
         self.active_timer["wake_lock_ref"][0] = None
@@ -116,7 +132,7 @@ class LazyFitApp(toga.App):
         if can_go_back:
             back_btn = toga.Button(
                 f"‹ {t('back')}",
-                on_press=lambda w: (back_fn() if back_fn else self.nav_pop()),
+                on_press=lambda w: back_fn() if back_fn else self.nav_pop(),
                 style=Pack(margin=4),
             )
             nav_bar = toga.Box(

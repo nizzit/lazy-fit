@@ -41,10 +41,15 @@ def init_db() -> None:
         );
 
         CREATE TABLE IF NOT EXISTS exercise (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            name            TEXT NOT NULL UNIQUE,
+            id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            type TEXT NOT NULL CHECK(type IN ('reps', 'time'))
+        );
+
+        CREATE TABLE IF NOT EXISTS exercise_muscle_group (
+            exercise_id     INTEGER NOT NULL REFERENCES exercise(id) ON DELETE CASCADE,
             muscle_group_id INTEGER NOT NULL REFERENCES muscle_group(id) ON DELETE CASCADE,
-            type            TEXT NOT NULL CHECK(type IN ('reps', 'time'))
+            PRIMARY KEY (exercise_id, muscle_group_id)
         );
 
         CREATE TABLE IF NOT EXISTS workout_set (

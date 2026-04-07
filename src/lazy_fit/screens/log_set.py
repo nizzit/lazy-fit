@@ -80,7 +80,10 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     # ------------------------------------------------------------------ save
     def on_save(widget: toga.Widget) -> None:
         # Cancel any running countdown (rest timer) before saving a new set.
-        if getattr(app, "active_timer", None) and app.active_timer.get("mode") == "countdown":
+        if (
+            getattr(app, "active_timer", None)
+            and app.active_timer.get("mode") == "countdown"
+        ):
             app.cancel_active_timer()
             app._render_current()
         raw_value = value_input_ref[0].value if value_input_ref[0] else None
@@ -101,7 +104,9 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         if exercise.type == "reps":
             create_workout_set(today, exercise.id, reps=int_value, equipment_id=eq_id)
         else:
-            create_workout_set(today, exercise.id, duration_sec=int_value, equipment_id=eq_id)
+            create_workout_set(
+                today, exercise.id, duration_sec=int_value, equipment_id=eq_id
+            )
 
         if value_input_ref[0]:
             value_input_ref[0].value = int_value
@@ -120,7 +125,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     # ------------------------------------------------------------------ build UI
     header = toga.Label(
-        f"{exercise.name}  ·  {exercise.muscle_group_name}",
+        f"{exercise.name}  ·  {', '.join(exercise.muscle_group_names)}",
         style=Pack(margin=8, font_size=16),
     )
 

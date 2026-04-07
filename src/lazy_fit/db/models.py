@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date as _date
 from typing import Optional
 
@@ -32,9 +32,9 @@ class Equipment:
 class Exercise:
     id: int
     name: str
-    muscle_group_id: int
     type: str  # 'reps' | 'time'
-    muscle_group_name: str = ""
+    muscle_group_ids: list[int] = field(default_factory=list)
+    muscle_group_names: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -125,7 +125,66 @@ def delete_equipment(eq_id: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Exercise
+# Exercise — internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _rows_to_exercises(rows: list) -> list[Exercise]:
+    """Convert flat JOIN rows (one row per exercise_muscle_group link) to Exercise list."""
+    exercises: dict[int, Exercise] = {}
+    for r in rows:
+        d = dict(r)
+        ex_id = d["id"]
+        if ex_id not in exercises:
+            exercises[ex_id] = Exercise(
+                id=ex_id,
+                name=d["name"],
+                type=d["type"],
+                muscle_group_ids=[],
+                muscle_group_names=[],
+            )
+        mg_id = d.get("muscle_group_id")
+        mg_name = d.get("muscle_group_name")
+        if mg_id is not None and mg_id not in exercises[ex_id].muscle_group_ids:
+            exercises[ex_id].muscle_group_ids.append(mg_id)
+        if mg_name is not None and mg_name not in exercises[ex_id].muscle_group_names:
+            exercises[ex_id].muscle_group_names.append(mg_name)
+    return list(exercises.values())
+
+
+def _fetch_exercise_by_id(ex_id: int) -> Optional[Exercise]:
+    rows = (
+        get_connection()
+        .execute(
+            """
+            SELECT e.id, e.name, e.type,
+                   emg.muscle_group_id, mg.name AS muscle_group_name
+            FROM exercise e
+            LEFT JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+            LEFT JOIN muscle_group mg ON mg.id = emg.muscle_group_id
+            WHERE e.id = ?
+            ORDER BY mg.name
+            """,
+            (ex_id,),
+        )
+        .fetchall()
+    )
+    if not rows:
+        return None
+    return _rows_to_exercises(rows)[0]
+
+
+def _set_exercise_muscle_groups(conn, ex_id: int, muscle_group_ids: list[int]) -> None:
+    conn.execute("DELETE FROM exercise_muscle_group WHERE exercise_id = ?", (ex_id,))
+    for mg_id in muscle_group_ids:
+        conn.execute(
+            "INSERT OR IGNORE INTO exercise_muscle_group(exercise_id, muscle_group_id) VALUES (?, ?)",
+            (ex_id, mg_id),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Exercise — public CRUD
 # ---------------------------------------------------------------------------
 
 
@@ -133,14 +192,16 @@ def get_all_exercises() -> list[Exercise]:
     rows = (
         get_connection()
         .execute("""
-        SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
-        FROM exercise e
-        JOIN muscle_group mg ON mg.id = e.muscle_group_id
-        ORDER BY e.name
-    """)
+            SELECT e.id, e.name, e.type,
+                   emg.muscle_group_id, mg.name AS muscle_group_name
+            FROM exercise e
+            LEFT JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+            LEFT JOIN muscle_group mg ON mg.id = emg.muscle_group_id
+            ORDER BY e.name, mg.name
+        """)
         .fetchall()
     )
-    return [Exercise(**dict(r)) for r in rows]
+    return _rows_to_exercises(rows)
 
 
 def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
@@ -148,43 +209,45 @@ def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
         get_connection()
         .execute(
             """
-        SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
-        FROM exercise e
-        JOIN muscle_group mg ON mg.id = e.muscle_group_id
-        WHERE e.muscle_group_id = ?
-        ORDER BY e.name
-    """,
+            SELECT e.id, e.name, e.type,
+                   emg2.muscle_group_id, mg2.name AS muscle_group_name
+            FROM exercise e
+            JOIN exercise_muscle_group emg ON emg.exercise_id = e.id AND emg.muscle_group_id = ?
+            LEFT JOIN exercise_muscle_group emg2 ON emg2.exercise_id = e.id
+            LEFT JOIN muscle_group mg2 ON mg2.id = emg2.muscle_group_id
+            ORDER BY e.name, mg2.name
+            """,
             (mg_id,),
         )
         .fetchall()
     )
-    return [Exercise(**dict(r)) for r in rows]
+    return _rows_to_exercises(rows)
 
 
-def create_exercise(name: str, muscle_group_id: int, ex_type: str) -> Exercise:
+def create_exercise(name: str, muscle_group_ids: list[int], ex_type: str) -> Exercise:
     conn = get_connection()
     cur = conn.execute(
-        "INSERT INTO exercise(name, muscle_group_id, type) VALUES (?, ?, ?)",
-        (name, muscle_group_id, ex_type),
+        "INSERT INTO exercise(name, type) VALUES (?, ?)",
+        (name, ex_type),
     )
+    ex_id = cur.lastrowid
+    _set_exercise_muscle_groups(conn, ex_id, muscle_group_ids)
     conn.commit()
-    row = conn.execute(
-        """
-        SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
-        FROM exercise e JOIN muscle_group mg ON mg.id = e.muscle_group_id
-        WHERE e.id = ?
-    """,
-        (cur.lastrowid,),
-    ).fetchone()
-    return Exercise(**dict(row))
+    result = _fetch_exercise_by_id(ex_id)
+    if result is None:
+        raise RuntimeError(f"Exercise {ex_id} not found after insert")
+    return result
 
 
-def update_exercise(ex_id: int, name: str, muscle_group_id: int, ex_type: str) -> None:
+def update_exercise(
+    ex_id: int, name: str, muscle_group_ids: list[int], ex_type: str
+) -> None:
     conn = get_connection()
     conn.execute(
-        "UPDATE exercise SET name=?, muscle_group_id=?, type=? WHERE id=?",
-        (name, muscle_group_id, ex_type, ex_id),
+        "UPDATE exercise SET name=?, type=? WHERE id=?",
+        (name, ex_type, ex_id),
     )
+    _set_exercise_muscle_groups(conn, ex_id, muscle_group_ids)
     conn.commit()
 
 
@@ -364,7 +427,8 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
         SELECT COUNT(*) AS cnt
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
-        WHERE e.muscle_group_id = ?
+        JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+        WHERE emg.muscle_group_id = ?
           AND ws.date >= ?
           AND ws.date <= ?
         """,
@@ -384,10 +448,9 @@ def get_last_exercise_today() -> Optional[Exercise]:
         get_connection()
         .execute(
             """
-        SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
+        SELECT e.id
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
-        JOIN muscle_group mg ON mg.id = e.muscle_group_id
         WHERE ws.date = ?
         ORDER BY ws.order_index DESC, ws.created_at DESC
         LIMIT 1
@@ -398,7 +461,7 @@ def get_last_exercise_today() -> Optional[Exercise]:
     )
     if row is None:
         return None
-    return Exercise(**dict(row))
+    return _fetch_exercise_by_id(row["id"])
 
 
 def get_last_value_for_exercise(exercise_id: int) -> Optional[int]:
@@ -440,9 +503,19 @@ def export_all_data() -> dict:
     exercises = [
         dict(r)
         for r in conn.execute(
-            "SELECT id, name, muscle_group_id, type FROM exercise ORDER BY id"
+            "SELECT id, name, type FROM exercise ORDER BY id"
         ).fetchall()
     ]
+    # Attach muscle_group_ids list to each exercise
+    emg_rows = conn.execute(
+        "SELECT exercise_id, muscle_group_id FROM exercise_muscle_group ORDER BY exercise_id, muscle_group_id"
+    ).fetchall()
+    emg_map: dict[int, list[int]] = {}
+    for r in emg_rows:
+        emg_map.setdefault(r["exercise_id"], []).append(r["muscle_group_id"])
+    for ex in exercises:
+        ex["muscle_group_ids"] = emg_map.get(ex["id"], [])
+
     workout_sets = [
         dict(r)
         for r in conn.execute(
@@ -452,7 +525,7 @@ def export_all_data() -> dict:
         ).fetchall()
     ]
     return {
-        "version": 1,
+        "version": 2,
         "exported_at": _date.today().isoformat(),
         "muscle_groups": muscle_groups,
         "equipment": equipment,
@@ -466,6 +539,7 @@ def import_all_data(data: dict) -> None:
     conn = get_connection()
     # Delete in FK-safe order
     conn.execute("DELETE FROM workout_set")
+    conn.execute("DELETE FROM exercise_muscle_group")
     conn.execute("DELETE FROM exercise")
     conn.execute("DELETE FROM equipment")
     conn.execute("DELETE FROM muscle_group")
@@ -483,9 +557,18 @@ def import_all_data(data: dict) -> None:
         )
     for ex in data.get("exercises", []):
         conn.execute(
-            "INSERT INTO exercise(id, name, muscle_group_id, type) VALUES (?, ?, ?, ?)",
-            (ex["id"], ex["name"], ex["muscle_group_id"], ex["type"]),
+            "INSERT INTO exercise(id, name, type) VALUES (?, ?, ?)",
+            (ex["id"], ex["name"], ex["type"]),
         )
+        # Support both old format (muscle_group_id) and new (muscle_group_ids)
+        mg_ids: list[int] = ex.get("muscle_group_ids") or []
+        if not mg_ids and ex.get("muscle_group_id"):
+            mg_ids = [ex["muscle_group_id"]]
+        for mg_id in mg_ids:
+            conn.execute(
+                "INSERT OR IGNORE INTO exercise_muscle_group(exercise_id, muscle_group_id) VALUES (?, ?)",
+                (ex["id"], mg_id),
+            )
     for ws in data.get("workout_sets", []):
         conn.execute(
             """INSERT INTO workout_set
