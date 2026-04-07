@@ -69,10 +69,13 @@ strings: dict[str, str] = {
     "error_empty_name": "Название не может быть пустым",
     "error_duplicate_name": "Такое название уже существует",
     "back": "Назад",
-    # Training period
-    "training_period": "Тренировочная неделя",
+    # Training plan
+    "training_period": "План тренировок",
+    "training_period_week_section": "Недельный период",
     "training_period_since_monday": "С понедельника",
     "training_period_last_7_days": "Последние 7 дней",
+    "rest_days_section": "Дни отдыха по группам мышц",
+    "rest_days_label": "{name}: {days} дн.",
     # Export / Import
     "data_management": "Управление данными",
     "export_data": "Экспорт данных",

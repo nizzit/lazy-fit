@@ -69,10 +69,13 @@ strings: dict[str, str] = {
     "error_empty_name": "Name cannot be empty",
     "error_duplicate_name": "This name already exists",
     "back": "Back",
-    # Training period
-    "training_period": "Training Week",
+    # Training plan
+    "training_period": "Training Plan",
+    "training_period_week_section": "Weekly Period",
     "training_period_since_monday": "Since Monday",
     "training_period_last_7_days": "Last 7 days",
+    "rest_days_section": "Rest Days by Muscle Group",
+    "rest_days_label": "{name}: {days} d.",
     # Export / Import
     "data_management": "Data Management",
     "export_data": "Export Data",
