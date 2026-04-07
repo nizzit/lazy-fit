@@ -108,7 +108,7 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_rest,
         on_change=on_rest_days_change,
-        style=Pack(width=140, margin=4),
+        style=Pack(width=96, margin=4),
     )
 
     limit_stepper = StepperInput(
@@ -117,7 +117,7 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_limit,
         on_change=on_daily_limit_change,
-        style=Pack(width=140, margin=4),
+        style=Pack(width=96, margin=4),
     )
 
     rest_section = toga.Box(
