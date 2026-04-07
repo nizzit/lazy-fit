@@ -53,20 +53,14 @@ def build(app: toga.App) -> toga.Box:
             ),
             toga.Box(
                 children=[
-                    toga.Label(
-                        t("training_period_since_monday"),
-                        style=Pack(margin=4, flex=1),
-                    ),
+                    toga.Label(t("training_period_since_monday"), style=Pack(margin=4, flex=1)),
                     monday_switch,
                 ],
                 style=Pack(direction=ROW, margin=4),
             ),
             toga.Box(
                 children=[
-                    toga.Label(
-                        t("training_period_last_7_days"),
-                        style=Pack(margin=4, flex=1),
-                    ),
+                    toga.Label(t("training_period_last_7_days"), style=Pack(margin=4, flex=1)),
                     last7_switch,
                 ],
                 style=Pack(direction=ROW, margin=4),
@@ -108,7 +102,7 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_rest,
         on_change=on_rest_days_change,
-        style=Pack(width=96, margin=4),
+        style=Pack(flex=1, margin=4),
     )
 
     limit_stepper = StepperInput(
@@ -117,7 +111,7 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_limit,
         on_change=on_daily_limit_change,
-        style=Pack(width=96, margin=4),
+        style=Pack(flex=1, margin=4),
     )
 
     rest_section = toga.Box(
@@ -128,17 +122,29 @@ def build(app: toga.App) -> toga.Box:
             ),
             toga.Box(
                 children=[
-                    toga.Label(t("rest_days_label"), style=Pack(margin=4, flex=1)),
-                    rest_stepper,
+                    toga.Box(
+                        children=[toga.Label(t("rest_days_label"), style=Pack(margin_left=4))],
+                        style=Pack(direction=ROW),
+                    ),
+                    toga.Box(
+                        children=[toga.Box(style=Pack(flex=1)), rest_stepper],
+                        style=Pack(direction=ROW, margin_bottom=4),
+                    ),
                 ],
-                style=Pack(direction=ROW, margin=4),
+                style=Pack(direction=COLUMN, margin_top=4),
             ),
             toga.Box(
                 children=[
-                    toga.Label(t("daily_sets_limit_label"), style=Pack(margin=4, flex=1)),
-                    limit_stepper,
+                    toga.Box(
+                        children=[toga.Label(t("daily_sets_limit_label"), style=Pack(margin_left=4))],
+                        style=Pack(direction=ROW),
+                    ),
+                    toga.Box(
+                        children=[toga.Box(style=Pack(flex=1)), limit_stepper],
+                        style=Pack(direction=ROW, margin_bottom=4),
+                    ),
                 ],
-                style=Pack(direction=ROW, margin=4),
+                style=Pack(direction=COLUMN, margin_top=4),
             ),
         ],
         style=Pack(direction=COLUMN),
