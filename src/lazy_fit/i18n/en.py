@@ -74,6 +74,7 @@ strings: dict[str, str] = {
     "training_period_since_monday": "Since Monday",
     "training_period_last_7_days": "Last 7 days",
     # Export / Import
+    "data_management": "Data Management",
     "export_data": "Export Data",
     "import_data": "Import Data",
     "export_success": "Data exported successfully",
