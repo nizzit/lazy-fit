@@ -10,7 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t, set_language
-from lazy_fit.db.connection import set_db_path, init_db, migrate_to_many_muscle_groups
+from lazy_fit.db.connection import set_db_path, init_db
 from lazy_fit.db.models import get_setting
 
 

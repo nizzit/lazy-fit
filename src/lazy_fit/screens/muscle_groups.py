@@ -7,13 +7,13 @@ from toga.style import Pack
 from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
-from lazy_fit.db.models import get_all_muscle_groups, MuscleGroup
+from lazy_fit.db.models import get_muscle_groups_with_weekly_stats, MuscleGroup
 
 
 def build(app: toga.App) -> toga.Box:
     """Build and return the muscle groups screen."""
 
-    muscle_groups: list[MuscleGroup] = get_all_muscle_groups()
+    muscle_groups: list[MuscleGroup] = get_muscle_groups_with_weekly_stats()
 
     scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
 
@@ -39,6 +39,15 @@ def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
         from lazy_fit.screens.exercises import build as build_ex
         app.nav_push(build_ex(app, mg), mg.name)
 
+    # Format the button text with weekly set counts
+    completed = getattr(mg, 'completed_sets', 0)
+    planned = mg.weekly_sets
+    
+    if planned is not None and planned > 0:
+        button_text = f"{mg.name} ({completed}/{planned})"
+    else:
+        button_text = f"{mg.name} ({completed})"
+
     container.add(
-        toga.Button(mg.name, on_press=on_tap, style=Pack(margin=8, flex=1))
+        toga.Button(button_text, on_press=on_tap, style=Pack(margin=8, flex=1))
     )

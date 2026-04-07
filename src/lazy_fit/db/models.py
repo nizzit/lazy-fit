@@ -439,6 +439,55 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
     return row["cnt"] if row else 0
 
 
+def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
+    """Return muscle groups sorted by lowest ratio of completed/planned weekly sets."""
+    from datetime import date, timedelta
+
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    
+    rows = (
+        get_connection()
+        .execute(
+            """
+            SELECT mg.id, mg.name, mg.weekly_sets,
+                   COUNT(ws.id) AS completed_sets
+            FROM muscle_group mg
+            LEFT JOIN exercise_muscle_group emg ON emg.muscle_group_id = mg.id
+            LEFT JOIN exercise e ON e.id = emg.exercise_id
+            LEFT JOIN workout_set ws ON ws.exercise_id = e.id 
+                AND ws.date >= ? AND ws.date <= ?
+            GROUP BY mg.id, mg.name, mg.weekly_sets
+            ORDER BY mg.name
+            """,
+            (week_start.isoformat(), week_end.isoformat()),
+        )
+        .fetchall()
+    )
+    
+    muscle_groups = []
+    for r in rows:
+        mg = MuscleGroup(
+            id=r["id"],
+            name=r["name"],
+            weekly_sets=r["weekly_sets"]
+        )
+        # Add completed sets count as a dynamic attribute
+        mg.completed_sets = r["completed_sets"]
+        muscle_groups.append(mg)
+    
+    # Sort by ratio (completed/planned), with special handling for None/0 planned sets
+    def sort_key(mg):
+        if mg.weekly_sets is None or mg.weekly_sets == 0:
+            # Groups with no planned sets go to the end
+            return float('inf')
+        return mg.completed_sets / mg.weekly_sets
+    
+    muscle_groups.sort(key=sort_key)
+    return muscle_groups
+
+
 def get_last_exercise_today() -> Optional[Exercise]:
     """Return the Exercise from the most recent workout_set logged today, or None."""
     from datetime import date
