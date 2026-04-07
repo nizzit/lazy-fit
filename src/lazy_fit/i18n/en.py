@@ -76,6 +76,7 @@ strings: dict[str, str] = {
     "training_period_last_7_days": "Last 7 days",
     "rest_days_section": "Rest Days by Muscle Group",
     "rest_days_label": "{name}: {days} d.",
+    "rest_days_remaining": "Rest: {days}d",
     # Export / Import
     "data_management": "Data Management",
     "export_data": "Export Data",

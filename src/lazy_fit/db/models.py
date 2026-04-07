@@ -20,6 +20,8 @@ class MuscleGroup:
     id: int
     name: str
     weekly_sets: Optional[int]
+    completed_sets: int = 0
+    rest_days_remaining: Optional[int] = None  # None = no rest rule set
 
 
 @dataclass
@@ -456,19 +458,23 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
 
 
 def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
-    """Return muscle groups sorted by lowest ratio of completed/planned weekly sets."""
+    """Return muscle groups sorted by plan progress, with resting groups at the bottom."""
+    from datetime import date, timedelta
+
     week_start, week_end = get_week_range()
-    
+    today = date.today()
+
     rows = (
         get_connection()
         .execute(
             """
             SELECT mg.id, mg.name, mg.weekly_sets,
-                   COUNT(ws.id) AS completed_sets
+                   COUNT(ws.id) AS completed_sets,
+                   MAX(ws.date) AS last_trained
             FROM muscle_group mg
             LEFT JOIN exercise_muscle_group emg ON emg.muscle_group_id = mg.id
             LEFT JOIN exercise e ON e.id = emg.exercise_id
-            LEFT JOIN workout_set ws ON ws.exercise_id = e.id 
+            LEFT JOIN workout_set ws ON ws.exercise_id = e.id
                 AND ws.date >= ? AND ws.date <= ?
             GROUP BY mg.id, mg.name, mg.weekly_sets
             ORDER BY mg.name
@@ -477,25 +483,37 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         )
         .fetchall()
     )
-    
+
     muscle_groups = []
     for r in rows:
+        rest_days_setting = int(get_setting(f"rest_days_mg_{r['id']}", "0"))
+        rest_remaining: Optional[int] = None
+        if rest_days_setting > 0 and r["last_trained"]:
+            last_trained = date.fromisoformat(r["last_trained"])
+            elapsed = (today - last_trained).days
+            remaining = rest_days_setting - elapsed
+            if remaining > 0:
+                rest_remaining = remaining
         mg = MuscleGroup(
             id=r["id"],
             name=r["name"],
-            weekly_sets=r["weekly_sets"]
+            weekly_sets=r["weekly_sets"],
+            completed_sets=r["completed_sets"],
+            rest_days_remaining=rest_remaining,
         )
-        # Add completed sets count as a dynamic attribute
-        mg.completed_sets = r["completed_sets"]
         muscle_groups.append(mg)
-    
-    # Sort by ratio (completed/planned), with special handling for None/0 planned sets
-    def sort_key(mg):
+
+    def sort_key(mg: MuscleGroup) -> tuple:
+        resting = mg.rest_days_remaining is not None and mg.rest_days_remaining > 0
+        if resting:
+            # Resting groups: sink to bottom, sorted by most days remaining first
+            return (2, mg.rest_days_remaining, mg.name)
         if mg.weekly_sets is None or mg.weekly_sets == 0:
-            # Groups with no planned sets go to the end
-            return float('inf')
-        return mg.completed_sets / mg.weekly_sets
-    
+            # No plan — after active groups but before resting
+            return (1, 0, mg.name)
+        ratio = mg.completed_sets / mg.weekly_sets
+        return (0, ratio, mg.name)
+
     muscle_groups.sort(key=sort_key)
     return muscle_groups
 
