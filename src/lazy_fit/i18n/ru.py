@@ -2,24 +2,20 @@ strings: dict[str, str] = {
     # App
     "app_name": "Lazy Fit",
     "lang_toggle": "EN",
-
     # Home
     "start_workout": "Начать тренировку",
     "continue_workout": "Продолжить тренировку",
     "history": "История",
     "settings": "Настройки",
-
     # Muscle groups
     "muscle_groups": "Группы мышц",
     "weekly_sets_target": "{done}/{target} подх./нед.",
     "no_muscle_groups": "Нет групп мышц. Добавьте в настройках.",
-
     # Exercises
     "exercises": "Упражнения",
     "no_exercises": "Нет упражнений для этой группы. Добавьте в настройках.",
     "type_reps": "Повторения",
     "type_time": "Время",
-
     # Log set
     "log_set": "Записать подход",
     "reps": "Повторения",
@@ -37,13 +33,11 @@ strings: dict[str, str] = {
     "timer_stop": "Стоп",
     "timer_reset": "Сброс",
     "timer_return": "Вернуться",
-
     # History
     "workout_history": "История тренировок",
     "no_history": "История пуста",
     "sets_count": "{n} подх.",
     "muscles_worked": "Мышцы: {muscles}",
-
     # Workout detail
     "workout_detail": "Тренировка {date}",
     "delete_workout": "Удалить тренировку",
@@ -54,7 +48,6 @@ strings: dict[str, str] = {
     "edit_set": "Редактировать",
     "save": "Сохранить",
     "cancel": "Отмена",
-
     # Rest timer
     "rest_timer": "Таймер отдыха",
     "rest_timer_on": "Включён",
@@ -62,7 +55,6 @@ strings: dict[str, str] = {
     "rest_timer_countdown": "Отдых: {time}",
     "rest_timer_skip": "Пропустить",
     "rest_timer_done": "Отдых завершён!",
-
     # Settings
     "settings_title": "Настройки",
     "manage_muscle_groups": "Группы мышц",
@@ -77,4 +69,11 @@ strings: dict[str, str] = {
     "error_empty_name": "Название не может быть пустым",
     "error_duplicate_name": "Такое название уже существует",
     "back": "Назад",
+    # Export / Import
+    "export_data": "Экспорт данных",
+    "import_data": "Импорт данных",
+    "export_success": "Данные успешно экспортированы",
+    "import_success": "Данные успешно импортированы. Приложение перезапущено.",
+    "import_confirm": "Все текущие данные будут заменены данными из файла. Продолжить?",
+    "import_error": "Ошибка: неверный формат файла резервной копии",
 }

@@ -2,24 +2,20 @@ strings: dict[str, str] = {
     # App
     "app_name": "Lazy Fit",
     "lang_toggle": "RU",
-
     # Home
     "start_workout": "Start Workout",
     "continue_workout": "Continue Workout",
     "history": "History",
     "settings": "Settings",
-
     # Muscle groups
     "muscle_groups": "Muscle Groups",
     "weekly_sets_target": "{done}/{target} sets/week",
     "no_muscle_groups": "No muscle groups. Add them in Settings.",
-
     # Exercises
     "exercises": "Exercises",
     "no_exercises": "No exercises for this group. Add them in Settings.",
     "type_reps": "Reps",
     "type_time": "Time",
-
     # Log set
     "log_set": "Log Set",
     "reps": "Reps",
@@ -37,13 +33,11 @@ strings: dict[str, str] = {
     "timer_stop": "Stop",
     "timer_reset": "Reset",
     "timer_return": "Return",
-
     # History
     "workout_history": "Workout History",
     "no_history": "No workouts yet",
     "sets_count": "{n} sets",
     "muscles_worked": "Muscles: {muscles}",
-
     # Workout detail
     "workout_detail": "Workout {date}",
     "delete_workout": "Delete Workout",
@@ -54,7 +48,6 @@ strings: dict[str, str] = {
     "edit_set": "Edit",
     "save": "Save",
     "cancel": "Cancel",
-
     # Rest timer
     "rest_timer": "Rest Timer",
     "rest_timer_on": "Enabled",
@@ -62,7 +55,6 @@ strings: dict[str, str] = {
     "rest_timer_countdown": "Rest: {time}",
     "rest_timer_skip": "Skip",
     "rest_timer_done": "Rest complete!",
-
     # Settings
     "settings_title": "Settings",
     "manage_muscle_groups": "Muscle Groups",
@@ -77,4 +69,11 @@ strings: dict[str, str] = {
     "error_empty_name": "Name cannot be empty",
     "error_duplicate_name": "This name already exists",
     "back": "Back",
+    # Export / Import
+    "export_data": "Export Data",
+    "import_data": "Import Data",
+    "export_success": "Data exported successfully",
+    "import_success": "Data imported successfully. App reloaded.",
+    "import_confirm": "All current data will be replaced with data from the file. Continue?",
+    "import_error": "Error: invalid backup file format",
 }

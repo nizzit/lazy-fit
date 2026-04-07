@@ -1,9 +1,11 @@
-"""Android platform API helpers — wake lock, notifications."""
+"""Android platform API helpers — wake lock, notifications, file share/pick."""
 
 from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
+from typing import Callable, Optional
 
 _log = logging.getLogger("lazy_fit")
 
@@ -60,6 +62,85 @@ def request_notification_permission() -> None:
         _log.exception(
             "Failed to request notification permission: %s: %s", type(e).__name__, e
         )
+
+
+def share_file(app: object, path: Path) -> None:
+    """Share *path* via Android share sheet (ACTION_SEND).
+
+    Uses the FileProvider registered by Briefcase under the authority
+    ``com.lazyfit.lazy-fit.fileprovider``.  The file must reside inside
+    a path exposed by ``file_paths.xml`` (cache dir works out of the box).
+    """
+    if sys.platform != "android":
+        return
+    try:
+        from android.content import Intent  # type: ignore[import-untyped]
+        from androidx.core.content import FileProvider  # type: ignore[import-untyped]
+        from java import jclass  # type: ignore[import-untyped]
+        from org.beeware.android import MainActivity  # type: ignore[import-untyped]
+
+        activity = MainActivity.singletonThis
+        JavaFile = jclass("java.io.File")
+        java_file = JavaFile(str(path))
+        authority = "com.lazyfit.lazy-fit.fileprovider"
+        uri = FileProvider.getUriForFile(activity, authority, java_file)
+
+        intent = Intent(Intent.ACTION_SEND)
+        intent.setType("application/json")
+        intent.putExtra(Intent.EXTRA_STREAM, uri)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        chooser = Intent.createChooser(intent, "")
+        app._impl.start_activity(chooser, on_complete=lambda *_: None)  # type: ignore[union-attr]
+    except Exception as e:
+        _log.exception("share_file failed: %s: %s", type(e).__name__, e)
+
+
+def pick_file(app: object, on_complete: Callable[[int, object], None]) -> None:
+    """Open Android file picker (ACTION_GET_CONTENT) for a JSON file.
+
+    *on_complete* is called with ``(result_code, result_data)`` when the
+    user selects a file or cancels.  ``result_code == -1`` (RESULT_OK) means
+    a file was selected; ``result_data.getData()`` returns the content URI.
+    """
+    if sys.platform != "android":
+        return
+    try:
+        from android.content import Intent  # type: ignore[import-untyped]
+
+        intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.setType("application/json")
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        app._impl.start_activity(intent, on_complete=on_complete)  # type: ignore[union-attr]
+    except Exception as e:
+        _log.exception("pick_file failed: %s: %s", type(e).__name__, e)
+
+
+def read_uri(uri: object) -> Optional[str]:
+    """Read the text content of an Android content URI.
+
+    Returns the decoded string, or ``None`` on error.
+    """
+    if sys.platform != "android":
+        return None
+    try:
+        from org.beeware.android import MainActivity  # type: ignore[import-untyped]
+
+        activity = MainActivity.singletonThis
+        stream = activity.getContentResolver().openInputStream(uri)
+        # Read all bytes from the Java InputStream into a Python bytearray
+        buf = bytearray()
+        chunk = bytearray(4096)
+        while True:
+            n = stream.read(chunk)
+            if n == -1:
+                break
+            buf.extend(chunk[:n])
+        stream.close()
+        return buf.decode("utf-8")
+    except Exception as e:
+        _log.exception("read_uri failed: %s: %s", type(e).__name__, e)
+        return None
 
 
 def send_notification(

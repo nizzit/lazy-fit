@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from datetime import date as _date
 from typing import Optional
 
 from .connection import get_connection
@@ -11,6 +13,7 @@ from .connection import get_connection
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MuscleGroup:
@@ -53,10 +56,13 @@ class WorkoutSet:
 # MuscleGroup
 # ---------------------------------------------------------------------------
 
+
 def get_all_muscle_groups() -> list[MuscleGroup]:
-    rows = get_connection().execute(
-        "SELECT id, name, weekly_sets FROM muscle_group ORDER BY name"
-    ).fetchall()
+    rows = (
+        get_connection()
+        .execute("SELECT id, name, weekly_sets FROM muscle_group ORDER BY name")
+        .fetchall()
+    )
     return [MuscleGroup(**dict(r)) for r in rows]
 
 
@@ -89,10 +95,13 @@ def delete_muscle_group(mg_id: int) -> None:
 # Equipment
 # ---------------------------------------------------------------------------
 
+
 def get_all_equipment() -> list[Equipment]:
-    rows = get_connection().execute(
-        "SELECT id, name FROM equipment ORDER BY name"
-    ).fetchall()
+    rows = (
+        get_connection()
+        .execute("SELECT id, name FROM equipment ORDER BY name")
+        .fetchall()
+    )
     return [Equipment(**dict(r)) for r in rows]
 
 
@@ -119,24 +128,36 @@ def delete_equipment(eq_id: int) -> None:
 # Exercise
 # ---------------------------------------------------------------------------
 
+
 def get_all_exercises() -> list[Exercise]:
-    rows = get_connection().execute("""
+    rows = (
+        get_connection()
+        .execute("""
         SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
         FROM exercise e
         JOIN muscle_group mg ON mg.id = e.muscle_group_id
         ORDER BY e.name
-    """).fetchall()
+    """)
+        .fetchall()
+    )
     return [Exercise(**dict(r)) for r in rows]
 
 
 def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
-    rows = get_connection().execute("""
+    rows = (
+        get_connection()
+        .execute(
+            """
         SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
         FROM exercise e
         JOIN muscle_group mg ON mg.id = e.muscle_group_id
         WHERE e.muscle_group_id = ?
         ORDER BY e.name
-    """, (mg_id,)).fetchall()
+    """,
+            (mg_id,),
+        )
+        .fetchall()
+    )
     return [Exercise(**dict(r)) for r in rows]
 
 
@@ -147,11 +168,14 @@ def create_exercise(name: str, muscle_group_id: int, ex_type: str) -> Exercise:
         (name, muscle_group_id, ex_type),
     )
     conn.commit()
-    row = conn.execute("""
+    row = conn.execute(
+        """
         SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
         FROM exercise e JOIN muscle_group mg ON mg.id = e.muscle_group_id
         WHERE e.id = ?
-    """, (cur.lastrowid,)).fetchone()
+    """,
+        (cur.lastrowid,),
+    ).fetchone()
     return Exercise(**dict(row))
 
 
@@ -174,6 +198,7 @@ def delete_exercise(ex_id: int) -> None:
 # WorkoutSet
 # ---------------------------------------------------------------------------
 
+
 def _row_to_workout_set(r: dict) -> WorkoutSet:
     return WorkoutSet(
         id=r["id"],
@@ -191,7 +216,10 @@ def _row_to_workout_set(r: dict) -> WorkoutSet:
 
 
 def get_sets_for_date(date: str) -> list[WorkoutSet]:
-    rows = get_connection().execute("""
+    rows = (
+        get_connection()
+        .execute(
+            """
         SELECT ws.*, e.name AS exercise_name, e.type AS exercise_type,
                eq.name AS equipment_name
         FROM workout_set ws
@@ -199,15 +227,21 @@ def get_sets_for_date(date: str) -> list[WorkoutSet]:
         LEFT JOIN equipment eq ON eq.id = ws.equipment_id
         WHERE ws.date = ?
         ORDER BY ws.order_index, ws.created_at
-    """, (date,)).fetchall()
+    """,
+            (date,),
+        )
+        .fetchall()
+    )
     return [_row_to_workout_set(dict(r)) for r in rows]
 
 
 def get_workout_dates() -> list[str]:
     """Return distinct workout dates in descending order."""
-    rows = get_connection().execute(
-        "SELECT DISTINCT date FROM workout_set ORDER BY date DESC"
-    ).fetchall()
+    rows = (
+        get_connection()
+        .execute("SELECT DISTINCT date FROM workout_set ORDER BY date DESC")
+        .fetchall()
+    )
     return [r["date"] for r in rows]
 
 
@@ -231,14 +265,17 @@ def create_workout_set(
         (date, exercise_id, order_index, reps, duration_sec, equipment_id),
     )
     conn.commit()
-    row = conn.execute("""
+    row = conn.execute(
+        """
         SELECT ws.*, e.name AS exercise_name, e.type AS exercise_type,
                eq.name AS equipment_name
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
         LEFT JOIN equipment eq ON eq.id = ws.equipment_id
         WHERE ws.id = ?
-    """, (cur.lastrowid,)).fetchone()
+    """,
+        (cur.lastrowid,),
+    ).fetchone()
     return _row_to_workout_set(dict(row))
 
 
@@ -270,13 +307,17 @@ def delete_workout_by_date(date: str) -> None:
 
 def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
     """Return the most recent equipment_id used for *exercise_id*, or None."""
-    row = get_connection().execute(
-        """SELECT equipment_id FROM workout_set
+    row = (
+        get_connection()
+        .execute(
+            """SELECT equipment_id FROM workout_set
            WHERE exercise_id = ?
            ORDER BY date DESC, order_index DESC, created_at DESC
            LIMIT 1""",
-        (exercise_id,),
-    ).fetchone()
+            (exercise_id,),
+        )
+        .fetchone()
+    )
     if row is None:
         return None
     return row["equipment_id"]
@@ -286,10 +327,13 @@ def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
 # App settings
 # ---------------------------------------------------------------------------
 
+
 def get_setting(key: str, default: str = "") -> str:
-    row = get_connection().execute(
-        "SELECT value FROM app_settings WHERE key = ?", (key,)
-    ).fetchone()
+    row = (
+        get_connection()
+        .execute("SELECT value FROM app_settings WHERE key = ?", (key,))
+        .fetchone()
+    )
     return row["value"] if row else default
 
 
@@ -305,14 +349,18 @@ def set_setting(key: str, value: str) -> None:
 
 # ---------------------------------------------------------------------------
 
+
 def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
     """Return the number of sets logged this week (Mon–Sun) for *mg_id*."""
     from datetime import date, timedelta
+
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
-    row = get_connection().execute(
-        """
+    row = (
+        get_connection()
+        .execute(
+            """
         SELECT COUNT(*) AS cnt
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
@@ -320,17 +368,22 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
           AND ws.date >= ?
           AND ws.date <= ?
         """,
-        (mg_id, week_start.isoformat(), week_end.isoformat()),
-    ).fetchone()
+            (mg_id, week_start.isoformat(), week_end.isoformat()),
+        )
+        .fetchone()
+    )
     return row["cnt"] if row else 0
 
 
 def get_last_exercise_today() -> Optional[Exercise]:
     """Return the Exercise from the most recent workout_set logged today, or None."""
     from datetime import date
+
     today = date.today().isoformat()
-    row = get_connection().execute(
-        """
+    row = (
+        get_connection()
+        .execute(
+            """
         SELECT e.id, e.name, e.muscle_group_id, e.type, mg.name AS muscle_group_name
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
@@ -339,8 +392,10 @@ def get_last_exercise_today() -> Optional[Exercise]:
         ORDER BY ws.order_index DESC, ws.created_at DESC
         LIMIT 1
         """,
-        (today,),
-    ).fetchone()
+            (today,),
+        )
+        .fetchone()
+    )
     if row is None:
         return None
     return Exercise(**dict(row))
@@ -348,13 +403,103 @@ def get_last_exercise_today() -> Optional[Exercise]:
 
 def get_last_value_for_exercise(exercise_id: int) -> Optional[int]:
     """Return the most recent reps or duration_sec for *exercise_id*, or None."""
-    row = get_connection().execute(
-        """SELECT reps, duration_sec FROM workout_set
+    row = (
+        get_connection()
+        .execute(
+            """SELECT reps, duration_sec FROM workout_set
            WHERE exercise_id = ?
            ORDER BY date DESC, order_index DESC, created_at DESC
            LIMIT 1""",
-        (exercise_id,),
-    ).fetchone()
+            (exercise_id,),
+        )
+        .fetchone()
+    )
     if row is None:
         return None
     return row["reps"] if row["reps"] is not None else row["duration_sec"]
+
+
+# ---------------------------------------------------------------------------
+# Export / Import
+# ---------------------------------------------------------------------------
+
+
+def export_all_data() -> dict:
+    """Serialize all user data to a plain dict suitable for JSON serialisation."""
+    conn = get_connection()
+    muscle_groups = [
+        dict(r)
+        for r in conn.execute(
+            "SELECT id, name, weekly_sets FROM muscle_group ORDER BY id"
+        ).fetchall()
+    ]
+    equipment = [
+        dict(r)
+        for r in conn.execute("SELECT id, name FROM equipment ORDER BY id").fetchall()
+    ]
+    exercises = [
+        dict(r)
+        for r in conn.execute(
+            "SELECT id, name, muscle_group_id, type FROM exercise ORDER BY id"
+        ).fetchall()
+    ]
+    workout_sets = [
+        dict(r)
+        for r in conn.execute(
+            """SELECT id, date, exercise_id, order_index, reps,
+                      duration_sec, equipment_id, created_at
+               FROM workout_set ORDER BY date, order_index, created_at"""
+        ).fetchall()
+    ]
+    return {
+        "version": 1,
+        "exported_at": _date.today().isoformat(),
+        "muscle_groups": muscle_groups,
+        "equipment": equipment,
+        "exercises": exercises,
+        "workout_sets": workout_sets,
+    }
+
+
+def import_all_data(data: dict) -> None:
+    """Replace all user data with the contents of *data* (from export_all_data)."""
+    conn = get_connection()
+    # Delete in FK-safe order
+    conn.execute("DELETE FROM workout_set")
+    conn.execute("DELETE FROM exercise")
+    conn.execute("DELETE FROM equipment")
+    conn.execute("DELETE FROM muscle_group")
+
+    # Insert in FK-safe order (parents first)
+    for mg in data.get("muscle_groups", []):
+        conn.execute(
+            "INSERT INTO muscle_group(id, name, weekly_sets) VALUES (?, ?, ?)",
+            (mg["id"], mg["name"], mg.get("weekly_sets")),
+        )
+    for eq in data.get("equipment", []):
+        conn.execute(
+            "INSERT INTO equipment(id, name) VALUES (?, ?)",
+            (eq["id"], eq["name"]),
+        )
+    for ex in data.get("exercises", []):
+        conn.execute(
+            "INSERT INTO exercise(id, name, muscle_group_id, type) VALUES (?, ?, ?, ?)",
+            (ex["id"], ex["name"], ex["muscle_group_id"], ex["type"]),
+        )
+    for ws in data.get("workout_sets", []):
+        conn.execute(
+            """INSERT INTO workout_set
+               (id, date, exercise_id, order_index, reps, duration_sec, equipment_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                ws["id"],
+                ws["date"],
+                ws["exercise_id"],
+                ws["order_index"],
+                ws.get("reps"),
+                ws.get("duration_sec"),
+                ws.get("equipment_id"),
+                ws.get("created_at", ""),
+            ),
+        )
+    conn.commit()
