@@ -36,6 +36,11 @@ def build(app: toga.App) -> toga.Box:
 
         app.nav_push(b(app), t("rest_timer"))
 
+    def on_training_period(widget: toga.Widget) -> None:
+        from lazy_fit.screens.settings.training_period import build as b
+
+        app.nav_push(b(app), t("training_period"))
+
     def on_lang_toggle(widget: toga.Widget) -> None:
         new_lang = "en" if get_language() == "ru" else "ru"
         set_language(new_lang)
@@ -158,6 +163,9 @@ def build(app: toga.App) -> toga.Box:
             toga.Button(t("manage_equipment"), on_press=on_equipment, style=btn_style),
             toga.Button(t("manage_exercises"), on_press=on_exercises, style=btn_style),
             toga.Button(t("rest_timer"), on_press=on_rest_timer, style=btn_style),
+            toga.Button(
+                t("training_period"), on_press=on_training_period, style=btn_style
+            ),
             toga.Button(t("export_data"), on_press=on_export, style=btn_style),
             toga.Button(t("import_data"), on_press=on_import, style=btn_style),
             toga.Button(t("lang_toggle"), on_press=on_lang_toggle, style=btn_style),

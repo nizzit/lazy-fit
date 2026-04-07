@@ -413,13 +413,29 @@ def set_setting(key: str, value: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
-    """Return the number of sets logged this week (Mon–Sun) for *mg_id*."""
+def get_week_range() -> tuple[str, str]:
+    """Return (start_date, end_date) ISO strings for the current training week.
+
+    Mode is read from app_settings key ``training_period``:
+    - ``"since_monday"`` (default) — Mon of current calendar week through Sun.
+    - ``"last_7_days"`` — today minus 6 days through today.
+    """
     from datetime import date, timedelta
 
     today = date.today()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
+    mode = get_setting("training_period", "since_monday")
+    if mode == "last_7_days":
+        start = today - timedelta(days=6)
+        end = today
+    else:
+        start = today - timedelta(days=today.weekday())  # Monday
+        end = start + timedelta(days=6)
+    return start.isoformat(), end.isoformat()
+
+
+def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
+    """Return the number of sets logged in the current training week for *mg_id*."""
+    week_start, week_end = get_week_range()
     row = (
         get_connection()
         .execute(
@@ -432,7 +448,7 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
           AND ws.date >= ?
           AND ws.date <= ?
         """,
-            (mg_id, week_start.isoformat(), week_end.isoformat()),
+            (mg_id, week_start, week_end),
         )
         .fetchone()
     )
@@ -441,11 +457,7 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
 
 def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
     """Return muscle groups sorted by lowest ratio of completed/planned weekly sets."""
-    from datetime import date, timedelta
-
-    today = date.today()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
+    week_start, week_end = get_week_range()
     
     rows = (
         get_connection()
@@ -461,7 +473,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
             GROUP BY mg.id, mg.name, mg.weekly_sets
             ORDER BY mg.name
             """,
-            (week_start.isoformat(), week_end.isoformat()),
+            (week_start, week_end),
         )
         .fetchall()
     )

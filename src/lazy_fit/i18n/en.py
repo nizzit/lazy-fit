@@ -69,6 +69,10 @@ strings: dict[str, str] = {
     "error_empty_name": "Name cannot be empty",
     "error_duplicate_name": "This name already exists",
     "back": "Back",
+    # Training period
+    "training_period": "Training Week",
+    "training_period_since_monday": "Since Monday",
+    "training_period_last_7_days": "Last 7 days",
     # Export / Import
     "export_data": "Export Data",
     "import_data": "Import Data",
