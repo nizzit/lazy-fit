@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.db.models import get_muscle_groups_with_weekly_stats, MuscleGroup
@@ -39,26 +39,18 @@ def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
         from lazy_fit.screens.exercises import build as build_ex
         app.nav_push(build_ex(app, mg), mg.name)
 
-    # Button label: name + weekly progress
+    # Button label: name + weekly progress [+ rest days if resting]
     if mg.weekly_sets is not None and mg.weekly_sets > 0:
-        button_text = f"{mg.name} ({mg.completed_sets}/{mg.weekly_sets})"
+        progress = f"{mg.completed_sets}/{mg.weekly_sets}"
     else:
-        button_text = f"{mg.name} ({mg.completed_sets})"
-
-    button = toga.Button(button_text, on_press=on_tap, style=Pack(flex=1))
-
-    row_children: list[toga.Widget] = [button]
+        progress = str(mg.completed_sets)
 
     if mg.rest_days_remaining is not None and mg.rest_days_remaining > 0:
-        rest_label = toga.Label(
-            t("rest_days_remaining").format(days=mg.rest_days_remaining),
-            style=Pack(margin_right=8, margin_top=8, color="gray"),
-        )
-        row_children.append(rest_label)
+        rest = t("rest_days_remaining").format(days=mg.rest_days_remaining)
+        button_text = f"{mg.name} ({progress}) — {rest}"
+    else:
+        button_text = f"{mg.name} ({progress})"
 
     container.add(
-        toga.Box(
-            children=row_children,
-            style=Pack(direction=ROW, margin=4),
-        )
+        toga.Button(button_text, on_press=on_tap, style=Pack(margin=8, flex=1))
     )
