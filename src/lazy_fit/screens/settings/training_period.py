@@ -1,4 +1,4 @@
-"""Training Plan settings screen — weekly period mode + rest days per muscle group."""
+"""Training Plan settings screen — weekly period mode + global rest days."""
 
 from __future__ import annotations
 
@@ -13,11 +13,7 @@ from lazy_fit.widgets import StepperInput
 def build(app: toga.App) -> toga.Box:
     """Build and return the training plan settings screen."""
 
-    from lazy_fit.db.models import (
-        get_all_muscle_groups,
-        get_setting,
-        set_setting,
-    )
+    from lazy_fit.db.models import get_setting, set_setting
 
     current_mode = get_setting("training_period", "since_monday")
 
@@ -80,62 +76,44 @@ def build(app: toga.App) -> toga.Box:
     )
 
     # ------------------------------------------------------------------ #
-    # Section: rest days per muscle group                                  #
+    # Section: global rest days                                            #
     # ------------------------------------------------------------------ #
 
-    muscle_groups = get_all_muscle_groups()
+    try:
+        saved_rest = int(get_setting("rest_days", "0"))
+    except ValueError:
+        saved_rest = 0
 
-    rest_rows: list[toga.Widget] = [
-        toga.Label(
-            t("rest_days_section"),
-            style=Pack(margin=4, font_weight="bold"),
-        ),
-    ]
-
-    for mg in muscle_groups:
-
-        def _make_handler(mg_id: int) -> object:
-            def on_change(widget: toga.Widget) -> None:
-                try:
-                    val = int(widget.value or 0)
-                except (TypeError, ValueError):
-                    val = 0
-                set_setting(f"rest_days_mg_{mg_id}", str(val))
-
-            return on_change
-
+    def on_rest_days_change(widget: toga.Widget) -> None:
         try:
-            saved = int(get_setting(f"rest_days_mg_{mg.id}", "0"))
-        except ValueError:
-            saved = 0
+            val = int(widget.value or 0)
+        except (TypeError, ValueError):
+            val = 0
+        set_setting("rest_days", str(val))
 
-        stepper = StepperInput(
-            min=0,
-            max=14,
-            step=1,
-            value=saved,
-            on_change=_make_handler(mg.id),
-            style=Pack(width=140, margin=4),
-        )
-
-        rest_rows.append(
-            toga.Box(
-                children=[
-                    toga.Label(mg.name, style=Pack(margin=4, flex=1)),
-                    stepper,
-                ],
-                style=Pack(direction=ROW, margin=4),
-            )
-        )
-
-    if len(rest_rows) == 1:
-        # Only the header — no muscle groups defined yet
-        rest_rows.append(
-            toga.Label(t("no_muscle_groups"), style=Pack(margin=4, color="gray"))
-        )
+    rest_stepper = StepperInput(
+        min=0,
+        max=14,
+        step=1,
+        value=saved_rest,
+        on_change=on_rest_days_change,
+        style=Pack(width=140, margin=4),
+    )
 
     rest_section = toga.Box(
-        children=rest_rows,
+        children=[
+            toga.Label(
+                t("rest_days_section"),
+                style=Pack(margin=4, font_weight="bold"),
+            ),
+            toga.Box(
+                children=[
+                    toga.Label(t("rest_days_label"), style=Pack(margin=4, flex=1)),
+                    rest_stepper,
+                ],
+                style=Pack(direction=ROW, margin=4),
+            ),
+        ],
         style=Pack(direction=COLUMN),
     )
 
@@ -143,12 +121,7 @@ def build(app: toga.App) -> toga.Box:
     # Root                                                                 #
     # ------------------------------------------------------------------ #
 
-    scroll_content = toga.Box(
+    return toga.Box(
         children=[week_section, rest_section],
         style=Pack(direction=COLUMN, margin=16),
-    )
-
-    return toga.ScrollContainer(
-        content=scroll_content,
-        style=Pack(flex=1),
     )

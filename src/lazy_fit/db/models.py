@@ -484,9 +484,13 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         .fetchall()
     )
 
+    try:
+        rest_days_setting = int(get_setting("rest_days", "0"))
+    except ValueError:
+        rest_days_setting = 0
+
     muscle_groups = []
     for r in rows:
-        rest_days_setting = int(get_setting(f"rest_days_mg_{r['id']}", "0"))
         rest_remaining: Optional[int] = None
         if rest_days_setting > 0 and r["last_trained"]:
             last_trained = date.fromisoformat(r["last_trained"])
