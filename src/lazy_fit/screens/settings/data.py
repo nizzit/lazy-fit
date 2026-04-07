@@ -44,6 +44,22 @@ def build(app: toga.App) -> toga.Box:
                 toga.InfoDialog(t("export_data"), t("export_success"))
             )
 
+    async def on_reset(widget: toga.Widget) -> None:
+        confirmed = await app.main_window.dialog(
+            toga.ConfirmDialog(t("reset_data"), t("reset_confirm"))
+        )
+        if not confirmed:
+            return
+
+        from lazy_fit.db.models import reset_all_data
+        from lazy_fit.screens.home import build as build_home
+
+        reset_all_data()
+        app.nav_replace_root(build_home(app), t("app_name"))
+        await app.main_window.dialog(
+            toga.InfoDialog(t("reset_data"), t("reset_success"))
+        )
+
     async def on_import(widget: toga.Widget) -> None:
         confirmed = await app.main_window.dialog(
             toga.ConfirmDialog(t("import_data"), t("import_confirm"))
@@ -125,6 +141,7 @@ def build(app: toga.App) -> toga.Box:
         children=[
             toga.Button(t("export_data"), on_press=on_export, style=btn_style),
             toga.Button(t("import_data"), on_press=on_import, style=btn_style),
+            toga.Button(t("reset_data"), on_press=on_reset, style=btn_style),
         ],
         style=Pack(direction=COLUMN, align_items="center", margin=32),
     )

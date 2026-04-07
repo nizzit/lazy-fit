@@ -595,6 +595,17 @@ def export_all_data() -> dict:
     }
 
 
+def reset_all_data() -> None:
+    """Delete all user-generated data (sets, exercises, muscle groups, equipment)."""
+    conn = get_connection()
+    conn.execute("DELETE FROM workout_set")
+    conn.execute("DELETE FROM exercise_muscle_group")
+    conn.execute("DELETE FROM exercise")
+    conn.execute("DELETE FROM equipment")
+    conn.execute("DELETE FROM muscle_group")
+    conn.commit()
+
+
 def import_all_data(data: dict) -> None:
     """Replace all user data with the contents of *data* (from export_all_data)."""
     conn = get_connection()

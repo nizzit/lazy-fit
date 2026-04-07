@@ -81,4 +81,7 @@ strings: dict[str, str] = {
     "import_success": "Data imported successfully. App reloaded.",
     "import_confirm": "All current data will be replaced with data from the file. Continue?",
     "import_error": "Error: invalid backup file format",
+    "reset_data": "Reset Data",
+    "reset_confirm": "All data will be permanently deleted with no way to recover. Continue?",
+    "reset_success": "Data has been reset successfully.",
 }
