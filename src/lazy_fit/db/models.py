@@ -459,27 +459,45 @@ def get_weekly_sets_count_for_muscle_group(mg_id: int) -> int:
 
 def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
     """Return muscle groups sorted by plan progress, with resting groups at the bottom."""
-    from datetime import date, timedelta
+    from datetime import date
 
     week_start, week_end = get_week_range()
     today = date.today()
+    today_str = today.isoformat()
 
     rows = (
         get_connection()
         .execute(
             """
-            SELECT mg.id, mg.name, mg.weekly_sets,
-                   COUNT(ws.id) AS completed_sets,
-                   MAX(ws.date) AS last_trained
+            SELECT
+                mg.id, mg.name, mg.weekly_sets,
+                (
+                    SELECT COUNT(ws.id)
+                    FROM workout_set ws
+                    JOIN exercise e ON e.id = ws.exercise_id
+                    JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+                    WHERE emg.muscle_group_id = mg.id
+                      AND ws.date >= ? AND ws.date <= ?
+                ) AS completed_sets,
+                (
+                    SELECT COUNT(ws.id)
+                    FROM workout_set ws
+                    JOIN exercise e ON e.id = ws.exercise_id
+                    JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+                    WHERE emg.muscle_group_id = mg.id
+                      AND ws.date = ?
+                ) AS today_sets,
+                (
+                    SELECT MAX(ws.date)
+                    FROM workout_set ws
+                    JOIN exercise e ON e.id = ws.exercise_id
+                    JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+                    WHERE emg.muscle_group_id = mg.id
+                ) AS last_trained
             FROM muscle_group mg
-            LEFT JOIN exercise_muscle_group emg ON emg.muscle_group_id = mg.id
-            LEFT JOIN exercise e ON e.id = emg.exercise_id
-            LEFT JOIN workout_set ws ON ws.exercise_id = e.id
-                AND ws.date >= ? AND ws.date <= ?
-            GROUP BY mg.id, mg.name, mg.weekly_sets
             ORDER BY mg.name
             """,
-            (week_start, week_end),
+            (week_start, week_end, today_str),
         )
         .fetchall()
     )
@@ -488,16 +506,30 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         rest_days_setting = int(get_setting("rest_days", "0"))
     except ValueError:
         rest_days_setting = 0
+    try:
+        daily_limit = int(get_setting("daily_sets_limit", "0"))
+    except ValueError:
+        daily_limit = 0
 
     muscle_groups = []
     for r in rows:
+        last_trained = date.fromisoformat(r["last_trained"]) if r["last_trained"] else None
+        today_sets: int = r["today_sets"]
+        limit_reached = daily_limit > 0 and today_sets >= daily_limit
+        trained_today = last_trained == today if last_trained else False
+
         rest_remaining: Optional[int] = None
-        if rest_days_setting > 0 and r["last_trained"]:
-            last_trained = date.fromisoformat(r["last_trained"])
+        if limit_reached:
+            # Daily limit hit — rest starts now; rest_days days or at least until tomorrow
+            rest_remaining = rest_days_setting if rest_days_setting > 0 else 1
+        elif last_trained and not trained_today and rest_days_setting > 0:
+            # Trained on a previous day — normal rest countdown
             elapsed = (today - last_trained).days
             remaining = rest_days_setting - elapsed
             if remaining > 0:
                 rest_remaining = remaining
+        # trained today but limit not reached → not resting yet
+
         mg = MuscleGroup(
             id=r["id"],
             name=r["name"],

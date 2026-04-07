@@ -83,6 +83,10 @@ def build(app: toga.App) -> toga.Box:
         saved_rest = int(get_setting("rest_days", "0"))
     except ValueError:
         saved_rest = 0
+    try:
+        saved_limit = int(get_setting("daily_sets_limit", "0"))
+    except ValueError:
+        saved_limit = 0
 
     def on_rest_days_change(widget: toga.Widget) -> None:
         try:
@@ -91,12 +95,28 @@ def build(app: toga.App) -> toga.Box:
             val = 0
         set_setting("rest_days", str(val))
 
+    def on_daily_limit_change(widget: toga.Widget) -> None:
+        try:
+            val = int(widget.value or 0)
+        except (TypeError, ValueError):
+            val = 0
+        set_setting("daily_sets_limit", str(val))
+
     rest_stepper = StepperInput(
         min=0,
         max=14,
         step=1,
         value=saved_rest,
         on_change=on_rest_days_change,
+        style=Pack(width=140, margin=4),
+    )
+
+    limit_stepper = StepperInput(
+        min=0,
+        max=50,
+        step=1,
+        value=saved_limit,
+        on_change=on_daily_limit_change,
         style=Pack(width=140, margin=4),
     )
 
@@ -110,6 +130,13 @@ def build(app: toga.App) -> toga.Box:
                 children=[
                     toga.Label(t("rest_days_label"), style=Pack(margin=4, flex=1)),
                     rest_stepper,
+                ],
+                style=Pack(direction=ROW, margin=4),
+            ),
+            toga.Box(
+                children=[
+                    toga.Label(t("daily_sets_limit_label"), style=Pack(margin=4, flex=1)),
+                    limit_stepper,
                 ],
                 style=Pack(direction=ROW, margin=4),
             ),
