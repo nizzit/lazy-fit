@@ -22,6 +22,7 @@ class MuscleGroup:
     weekly_sets: Optional[int]
     completed_sets: int = 0
     rest_days_remaining: Optional[int] = None  # None = no rest rule set
+    trained_today: bool = False
 
 
 @dataclass
@@ -536,6 +537,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
             weekly_sets=r["weekly_sets"],
             completed_sets=r["completed_sets"],
             rest_days_remaining=rest_remaining,
+            trained_today=trained_today and not limit_reached,
         )
         muscle_groups.append(mg)
 
@@ -543,12 +545,16 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         resting = mg.rest_days_remaining is not None and mg.rest_days_remaining > 0
         if resting:
             # Resting groups: sink to bottom, sorted by most days remaining first
-            return (2, mg.rest_days_remaining, mg.name)
+            return (3, mg.rest_days_remaining, mg.name)
         if mg.weekly_sets is None or mg.weekly_sets == 0:
             # No plan — after active groups but before resting
-            return (1, 0, mg.name)
+            return (2, 0, mg.name)
+        if mg.trained_today:
+            # Trained today and limit not yet reached — highest priority
+            ratio = mg.completed_sets / mg.weekly_sets
+            return (0, ratio, mg.name)
         ratio = mg.completed_sets / mg.weekly_sets
-        return (0, ratio, mg.name)
+        return (1, ratio, mg.name)
 
     muscle_groups.sort(key=sort_key)
     return muscle_groups
