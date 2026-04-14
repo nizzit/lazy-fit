@@ -1,4 +1,4 @@
-"""Shared workout-log display component used by log_set and history screens."""
+"""Workout log widget — shared set list for current and past workouts."""
 
 from __future__ import annotations
 
@@ -25,20 +25,30 @@ def populate_workout_log(
     If *reverse* is False, exercises appear in chronological order (first on top).
     """
     sets = get_sets_for_date(date)
-    if reverse:
-        sets = list(reversed(sets))
 
     if not sets:
         box.add(toga.Label(t("no_sets_today"), style=Pack(margin=8)))
         return
 
-    groups: dict[str, list[WorkoutSet]] = {}
-    for s in sets:
-        groups.setdefault(s.exercise_name, []).append(s)
+    # Group by exercise_id (not name) to avoid merging same-named exercises.
+    # Insertion order is preserved so groups reflect chronological exercise order.
+    seen: dict[int, list[WorkoutSet]] = {}
+    for ws in sets:
+        if ws.exercise_id not in seen:
+            seen[ws.exercise_id] = []
+        seen[ws.exercise_id].append(ws)
+
+    # Build ordered list of (name, sets) pairs; exercise_name is stable per id.
+    groups: list[tuple[str, list[WorkoutSet]]] = [
+        (ex_sets[0].exercise_name, ex_sets) for ex_sets in seen.values()
+    ]
+
+    if reverse:
+        groups.reverse()
 
     per_row = _buttons_per_row(app)
 
-    for ex_name, ex_sets in groups.items():
+    for ex_name, ex_sets in groups:
         box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=13)))
         wrap = toga.Box(style=Pack(direction=COLUMN))
         current_row = toga.Box(style=Pack(direction=ROW))
