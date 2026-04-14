@@ -75,7 +75,7 @@ strings: dict[str, str] = {
     "training_period_since_monday": "С понедельника",
     "training_period_last_7_days": "Последние 7 дней",
     "rest_days_section": "Дни отдыха",
-    "rest_days_label": "Отдых между тренировками",
+    "rest_days_label": "Отдых между тренировками (дни)",
     "rest_days_remaining": "Отдых: {days} дн.",
     "daily_sets_limit_label": "Лимит подходов в день",
     # Export / Import
