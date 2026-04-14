@@ -32,7 +32,7 @@ def build(app: toga.App) -> toga.Box:
         set_setting("rest_timer_seconds", str(val))
 
     rest_switch = toga.Switch(
-        t("rest_timer_on"),
+        "",
         value=rest_enabled,
         on_change=on_rest_toggle,
         style=Pack(margin_left=8),
@@ -49,7 +49,7 @@ def build(app: toga.App) -> toga.Box:
 
     toggle_row = toga.Box(
         children=[
-            toga.Label(t("rest_timer_on"), style=Pack(margin=4, width=160)),
+            toga.Label(t("rest_timer_on"), style=Pack(margin=4, flex=1)),
             rest_switch,
         ],
         style=Pack(direction=ROW, margin=4),
