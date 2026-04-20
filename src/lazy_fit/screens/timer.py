@@ -118,7 +118,19 @@ def build(
                         channel_name=t("rest_timer"),
                     )
                     await asyncio.sleep(0.5)
+                    # Finish timer immediately, but keep wake lock alive for
+                    # a configurable delay so the screen stays on a bit longer.
+                    from lazy_fit.db.models import get_setting
+                    try:
+                        delay = int(get_setting("wake_lock_delay", "5"))
+                    except (ValueError, TypeError):
+                        delay = 5
+                    deferred_ref = wake_lock_ref[0]
+                    wake_lock_ref[0] = None  # prevent _do_finish from releasing
                     _do_finish()
+                    if delay > 0 and deferred_ref is not None:
+                        await asyncio.sleep(delay)
+                    release_wake_lock(deferred_ref)
                     return
                 txt = _fmt_time(elapsed[0])
 

@@ -55,6 +55,7 @@ strings: dict[str, str] = {
     "rest_timer_countdown": "Rest: {time}",
     "rest_timer_skip": "Skip",
     "rest_timer_done": "Rest complete!",
+    "wake_lock_delay": "Screen-on delay after timer (sec)",
     # Settings
     "settings_title": "Settings",
     "manage_muscle_groups": "Muscle Groups",

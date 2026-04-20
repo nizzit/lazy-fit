@@ -55,6 +55,7 @@ strings: dict[str, str] = {
     "rest_timer_countdown": "Отдых: {time}",
     "rest_timer_skip": "Пропустить",
     "rest_timer_done": "Отдых завершён!",
+    "wake_lock_delay": "Задержка отключения экрана (сек)",
     # Settings
     "settings_title": "Настройки",
     "manage_muscle_groups": "Группы мышц",
