@@ -20,8 +20,20 @@ def build(app: toga.App) -> toga.Box:
         app.nav_push(build_mg(app), t("muscle_groups"))
 
     def on_continue_workout(widget: toga.Widget) -> None:
+        from lazy_fit.screens.muscle_groups import build as build_mg
+        from lazy_fit.screens.exercises import build as build_ex
         from lazy_fit.screens.log_set import build as build_log_set
-        app.nav_push(build_log_set(app, last_exercise), t("log_set"))
+        from lazy_fit.db.models import get_muscle_group_by_id
+
+        app.nav_push(build_mg(app), t("muscle_groups"))
+
+        mg = None
+        if last_exercise.muscle_group_ids:
+            mg = get_muscle_group_by_id(last_exercise.muscle_group_ids[0])
+        if mg is not None:
+            app.nav_push(build_ex(app, mg), mg.name)
+
+        app.nav_push(build_log_set(app, last_exercise), last_exercise.name)
 
     def on_history(widget: toga.Widget) -> None:
         from lazy_fit.screens.history import build as build_hist

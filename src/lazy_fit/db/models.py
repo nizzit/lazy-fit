@@ -60,6 +60,15 @@ class WorkoutSet:
 # ---------------------------------------------------------------------------
 
 
+def get_muscle_group_by_id(mg_id: int) -> Optional[MuscleGroup]:
+    row = (
+        get_connection()
+        .execute("SELECT id, name, weekly_sets FROM muscle_group WHERE id = ?", (mg_id,))
+        .fetchone()
+    )
+    return MuscleGroup(**dict(row)) if row else None
+
+
 def get_all_muscle_groups() -> list[MuscleGroup]:
     rows = (
         get_connection()
