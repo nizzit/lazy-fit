@@ -77,6 +77,7 @@ strings: dict[str, str] = {
     "training_period_last_7_days": "Последние 7 дней",
     "rest_days_section": "Дни отдыха",
     "rest_days_label": "Отдых между тренировками (дни)",
+    "rest_days_override_label": "Отдых для группы (дни, 0 — глобальный)",
     "rest_days_remaining": "Отдых: {days} дн.",
     "daily_sets_limit_exercise_label": "Лимит подходов на упражнение в день",
     "daily_sets_limit_muscle_group_label": "Лимит подходов на группу мышц в день",

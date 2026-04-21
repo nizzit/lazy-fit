@@ -20,8 +20,9 @@ class MuscleGroup:
     id: int
     name: str
     weekly_sets: Optional[int]
+    rest_days: Optional[int] = None  # per-group override; None = use global
     completed_sets: int = 0
-    rest_days_remaining: Optional[int] = None  # None = no rest rule set
+    rest_days_remaining: Optional[int] = None  # computed: days left in rest
     trained_today: bool = False
 
 
@@ -63,7 +64,7 @@ class WorkoutSet:
 def get_muscle_group_by_id(mg_id: int) -> Optional[MuscleGroup]:
     row = (
         get_connection()
-        .execute("SELECT id, name, weekly_sets FROM muscle_group WHERE id = ?", (mg_id,))
+        .execute("SELECT id, name, weekly_sets, rest_days FROM muscle_group WHERE id = ?", (mg_id,))
         .fetchone()
     )
     return MuscleGroup(**dict(row)) if row else None
@@ -72,27 +73,36 @@ def get_muscle_group_by_id(mg_id: int) -> Optional[MuscleGroup]:
 def get_all_muscle_groups() -> list[MuscleGroup]:
     rows = (
         get_connection()
-        .execute("SELECT id, name, weekly_sets FROM muscle_group ORDER BY name")
+        .execute("SELECT id, name, weekly_sets, rest_days FROM muscle_group ORDER BY name")
         .fetchall()
     )
     return [MuscleGroup(**dict(r)) for r in rows]
 
 
-def create_muscle_group(name: str, weekly_sets: Optional[int] = None) -> MuscleGroup:
+def create_muscle_group(
+    name: str,
+    weekly_sets: Optional[int] = None,
+    rest_days: Optional[int] = None,
+) -> MuscleGroup:
     conn = get_connection()
     cur = conn.execute(
-        "INSERT INTO muscle_group(name, weekly_sets) VALUES (?, ?)",
-        (name, weekly_sets),
+        "INSERT INTO muscle_group(name, weekly_sets, rest_days) VALUES (?, ?, ?)",
+        (name, weekly_sets, rest_days),
     )
     conn.commit()
-    return MuscleGroup(id=cur.lastrowid, name=name, weekly_sets=weekly_sets)
+    return MuscleGroup(id=cur.lastrowid, name=name, weekly_sets=weekly_sets, rest_days=rest_days)
 
 
-def update_muscle_group(mg_id: int, name: str, weekly_sets: Optional[int]) -> None:
+def update_muscle_group(
+    mg_id: int,
+    name: str,
+    weekly_sets: Optional[int],
+    rest_days: Optional[int] = None,
+) -> None:
     conn = get_connection()
     conn.execute(
-        "UPDATE muscle_group SET name=?, weekly_sets=? WHERE id=?",
-        (name, weekly_sets, mg_id),
+        "UPDATE muscle_group SET name=?, weekly_sets=?, rest_days=? WHERE id=?",
+        (name, weekly_sets, rest_days, mg_id),
     )
     conn.commit()
 
@@ -531,7 +541,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         .execute(
             """
             SELECT
-                mg.id, mg.name, mg.weekly_sets,
+                mg.id, mg.name, mg.weekly_sets, mg.rest_days,
                 (
                     SELECT COUNT(ws.id)
                     FROM workout_set ws
@@ -579,14 +589,18 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         limit_reached = daily_limit > 0 and today_sets >= daily_limit
         trained_today = last_trained == today if last_trained else False
 
+        # Per-group rest_days overrides the global setting when set.
+        mg_rest_days: Optional[int] = r["rest_days"]
+        effective_rest = mg_rest_days if (mg_rest_days is not None) else rest_days_setting
+
         rest_remaining: Optional[int] = None
         if limit_reached:
-            # Daily limit hit — rest starts now; rest_days days or at least until tomorrow
-            rest_remaining = rest_days_setting if rest_days_setting > 0 else 1
-        elif last_trained and not trained_today and rest_days_setting > 0:
+            # Daily limit hit — rest starts now
+            rest_remaining = effective_rest if effective_rest > 0 else 1
+        elif last_trained and not trained_today and effective_rest > 0:
             # Trained on a previous day — normal rest countdown
             elapsed = (today - last_trained).days
-            remaining = rest_days_setting - elapsed
+            remaining = effective_rest - elapsed
             if remaining > 0:
                 rest_remaining = remaining
         # trained today but limit not reached → not resting yet
@@ -595,6 +609,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
             id=r["id"],
             name=r["name"],
             weekly_sets=r["weekly_sets"],
+            rest_days=mg_rest_days,
             completed_sets=r["completed_sets"],
             rest_days_remaining=rest_remaining,
             trained_today=trained_today and not limit_reached,

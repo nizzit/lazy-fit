@@ -52,6 +52,12 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         value=mg.weekly_sets if (mg and mg.weekly_sets) else 0,
         style=Pack(flex=1, margin=4),
     )
+    rest_days_input = toga.NumberInput(
+        min=0,
+        step=1,
+        value=mg.rest_days if (mg and mg.rest_days is not None) else 0,
+        style=Pack(flex=1, margin=4),
+    )
     error_label = toga.Label("", style=Pack(margin=4, color="red"))
 
     def on_save(widget: toga.Widget) -> None:
@@ -66,11 +72,18 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
                 ws = None
         except (ValueError, TypeError):
             ws = None
+        try:
+            rd_raw = rest_days_input.value
+            rd = int(rd_raw) if rd_raw else None
+            if rd == 0:
+                rd = None
+        except (ValueError, TypeError):
+            rd = None
 
         if mg:
-            update_muscle_group(mg.id, name, ws)
+            update_muscle_group(mg.id, name, ws, rd)
         else:
-            create_muscle_group(name, ws)
+            create_muscle_group(name, ws, rd)
 
         refresh_fn()  # type: ignore[operator]
         app.nav_pop()
@@ -88,6 +101,7 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         [
             build_form_field("name", name_input),
             build_form_field("weekly_sets", weekly_input),
+            build_form_field("rest_days_override_label", rest_days_input),
         ],
         error_label,
         on_save,

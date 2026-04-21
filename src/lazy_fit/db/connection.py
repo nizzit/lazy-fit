@@ -28,12 +28,21 @@ def get_connection() -> sqlite3.Connection:
 def init_db() -> None:
     """Create all tables if they do not exist yet."""
     conn = get_connection()
+    # Incremental migration: add columns introduced after initial release.
+    try:
+        conn.execute("ALTER TABLE muscle_group ADD COLUMN rest_days INTEGER")
+        conn.commit()
+    except Exception:
+        pass  # column already exists
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS muscle_group (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             name        TEXT NOT NULL UNIQUE,
-            weekly_sets INTEGER
+            weekly_sets INTEGER,
+            rest_days   INTEGER
         );
+
+
 
         CREATE TABLE IF NOT EXISTS equipment (
             id   INTEGER PRIMARY KEY AUTOINCREMENT,
