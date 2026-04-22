@@ -85,6 +85,9 @@ class LazyFitApp(toga.App):
         if not self.active_timer:
             return
         at = self.active_timer
+        if at.get("mode") == "countdown":
+            from lazy_fit.db.models import set_setting
+            set_setting("rest_timer_minimized", "0")
         self._nav_stack.append(
             (
                 at["screen_widget"],

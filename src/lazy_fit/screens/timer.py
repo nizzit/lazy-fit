@@ -60,6 +60,7 @@ def build(
     wake_lock_ref: list[object | None] = [None]
     time_label_ref: list[Optional[toga.Label]] = [None]
     done = [False]
+    minimized = [False]
 
     screen_title = t("rest_timer") if mode == "countdown" else t("timer")
 
@@ -94,6 +95,9 @@ def build(
         """Called when user presses back on the timer screen."""
         if done[0]:
             return
+        minimized[0] = True
+        from lazy_fit.db.models import set_setting
+        set_setting("rest_timer_minimized", "1")
         # nav_pop removes timer from stack; _render_current will show the banner
         # because active_timer is still set and screen_widget != current top.
         app.nav_pop()
@@ -204,3 +208,8 @@ def build(
     # Stopwatch has no back button — user must press the stop button.
     # Countdown shows a back button that minimises the timer.
     app.nav_push(root, screen_title, back_fn=_minimize, show_back=(mode == "countdown"))
+
+    if mode == "countdown":
+        from lazy_fit.db.models import get_setting
+        if get_setting("rest_timer_minimized", "0") == "1":
+            _minimize()
