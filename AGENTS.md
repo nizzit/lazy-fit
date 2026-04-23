@@ -262,6 +262,20 @@ Cascade deletes: deleting a `muscle_group` cascades to `exercise`, which cascade
 
 ---
 
+## Versioning
+
+Version is defined in **two places** in `pyproject.toml`: `[project].version` and `[tool.briefcase].version` — keep them in sync.
+
+Bump version on **every change** using [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
+
+| Change type | Example | Bump |
+|---|---|---|
+| Bug fix, minor UI tweak, copy change | fix typo, fix crash | `PATCH` (0.1.0 → 0.1.1) |
+| New feature, new screen, new setting | add rest timer screen | `MINOR` (0.1.0 → 0.2.0) |
+| Breaking DB migration, full redesign | restructure data model | `MAJOR` (0.1.0 → 1.0.0) |
+
+---
+
 ## Gotchas
 
 - **No hot-reload**: each code change on desktop requires re-running `make dev`. Android builds are slow — iterate on desktop first.

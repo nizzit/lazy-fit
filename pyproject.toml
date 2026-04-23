@@ -1,6 +1,6 @@
 [project]
 name = "lazy-fit"
-version = "0.1.0"
+version = "0.1.1"
 description = "Workout tracker for Android"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -12,11 +12,11 @@ dependencies = [
 [tool.briefcase]
 project_name = "LazyFit"
 bundle = "com.lazyfit"
-version = "0.1.0"
+version = "0.1.1"
 url = "https://github.com/user/lazy-fit"
 license.text = "MIT"
-author = "Author"
-author_email = "author@example.com"
+author = "Anton B"
+author_email = "nizzit@gmail.com"
 
 [tool.briefcase.app.lazy-fit]
 formal_name = "LazyFit"
