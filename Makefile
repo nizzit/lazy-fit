@@ -1,5 +1,5 @@
 # ============================================================
-#  Lazy Fit — Android build / install / run helpers
+#  LazyFit — Android build / install / run helpers
 #  Requires: uv, Java JDK, Android SDK (set ANDROID_HOME)
 # ============================================================
 
@@ -12,7 +12,7 @@ PLATFORM := android
 # ── help ────────────────────────────────────────────────────
 help:
 	@echo ""
-	@echo "  Lazy Fit — Makefile targets"
+	@echo "  LazyFit — Makefile targets"
 	@echo ""
 	@echo "  Desktop"
 	@echo "  -------"

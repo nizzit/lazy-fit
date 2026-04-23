@@ -1,4 +1,4 @@
-# Lazy-Fit — Android Workout Tracker (Python + Briefcase + Toga)
+# LazyFit — Android Workout Tracker (Python + Briefcase + Toga)
 
 ## Overview
 
@@ -165,7 +165,7 @@ All UI labels use `t('key')`. Switching language rebuilds the current screen.
 
 ```toml
 [tool.briefcase]
-project_name = "Lazy Fit"
+project_name = "LazyFit"
 bundle = "com.lazyfit"
 version = "0.1.0"
 url = "https://github.com/user/lazy-fit"
@@ -174,7 +174,7 @@ author = "Author"
 author_email = "author@example.com"
 
 [tool.briefcase.app.lazy-fit]
-formal_name = "Lazy Fit"
+formal_name = "LazyFit"
 description = "Workout tracker"
 long_description = "Track your gym workouts"
 sources = ["src/lazy_fit"]

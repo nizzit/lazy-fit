@@ -1,4 +1,4 @@
-# Lazy Fit — Workout Tracker
+# LazyFit — Workout Tracker
 
 Android workout tracking app built with **Python 3.13 + Toga + Briefcase**.
 

@@ -1,4 +1,4 @@
-# Layout Guide — Lazy Fit
+# Layout Guide — LazyFit
 
 Toga использует движок **Pack** (аналог Flexbox). Все экраны строятся из вложенных `toga.Box` с `style=Pack(...)`.
 

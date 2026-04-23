@@ -1,6 +1,6 @@
 strings: dict[str, str] = {
     # App
-    "app_name": "Lazy Fit",
+    "app_name": "LazyFit",
     "lang_toggle": "EN",
     # Home
     "start_workout": "Начать тренировку",
@@ -14,6 +14,7 @@ strings: dict[str, str] = {
     # Exercises
     "exercises": "Упражнения",
     "no_exercises": "Нет упражнений для этой группы. Добавьте в настройках.",
+    "no_exercises_in_group": "Нет упражнений",
     "type_reps": "Повторения",
     "type_time": "Время",
     # Log set

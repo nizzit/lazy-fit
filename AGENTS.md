@@ -1,4 +1,7 @@
-# AGENTS.md — Lazy Fit
+# AGENTS.md — LazyFit
+
+For any file search or grep in the current git indexed directory use fff tools
+Use Caveman mode
 
 Android workout tracker built with **Python 3.13 + Toga + Briefcase**. SQLite for local storage. Russian / English i18n.
 

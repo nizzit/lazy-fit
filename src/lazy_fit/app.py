@@ -156,6 +156,6 @@ class LazyFitApp(toga.App):
 
 def main() -> LazyFitApp:
     return LazyFitApp(
-        "Lazy Fit",
+        "LazyFit",
         "com.lazyfit.lazy_fit",
     )

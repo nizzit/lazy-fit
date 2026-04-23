@@ -6,12 +6,15 @@ from typing import Optional
 
 import toga
 from toga.style import Pack
+from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.widgets import StepperInput
 from lazy_fit.db.models import (
+    Exercise,
     MuscleGroup,
     get_all_muscle_groups,
+    get_exercises_by_muscle_group,
     create_muscle_group,
     update_muscle_group,
     delete_muscle_group,
@@ -35,6 +38,33 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
             _show_form(app, mg, refresh_fn)
 
         box.add(build_list_row(mg.name, on_edit))
+
+
+def _build_exercises_section(
+    app: toga.App, mg: MuscleGroup, refresh_fn: object
+) -> toga.Box:
+    exercises = get_exercises_by_muscle_group(mg.id)
+
+    def on_add_exercise(widget: toga.Widget) -> None:
+        from lazy_fit.screens.settings.manage_exercises import _show_form as _show_exercise_form
+        _show_exercise_form(app, None, refresh_fn, preselect_mg_ids=[mg.id])
+
+    section = toga.Box(style=Pack(direction=COLUMN, margin=4))
+    section.add(toga.Label(t("exercises"), style=Pack(margin=4)))
+    section.add(toga.Button(f"+ {t('add')}", on_press=on_add_exercise, style=Pack(margin=4)))
+
+    if not exercises:
+        section.add(toga.Label(t("no_exercises_in_group"), style=Pack(margin=4)))
+    else:
+        for ex in exercises:
+
+            def on_edit_exercise(widget: toga.Widget, ex: Exercise = ex) -> None:
+                from lazy_fit.screens.settings.manage_exercises import _show_form as _show_exercise_form
+                _show_exercise_form(app, ex, refresh_fn)
+
+            section.add(build_list_row(ex.name, on_edit_exercise))
+
+    return section
 
 
 def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> None:
@@ -101,12 +131,16 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
                 refresh_fn()  # type: ignore[operator]
                 app.nav_pop()
 
+    fields: list[toga.Widget] = [
+        build_form_field("name", name_input),
+        build_form_field("weekly_sets", weekly_input),
+        build_form_field("rest_days_override_label", rest_days_input),
+    ]
+    if mg:
+        fields.append(_build_exercises_section(app, mg, refresh_fn))
+
     form = build_entity_form(
-        [
-            build_form_field("name", name_input),
-            build_form_field("weekly_sets", weekly_input),
-            build_form_field("rest_days_override_label", rest_days_input),
-        ],
+        fields,
         error_label,
         on_save,
         on_cancel,

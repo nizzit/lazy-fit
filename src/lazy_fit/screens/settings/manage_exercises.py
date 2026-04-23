@@ -41,7 +41,12 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
         box.add(build_list_row(ex.name, on_edit))
 
 
-def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> None:
+def _show_form(
+    app: toga.App,
+    ex: Optional[Exercise],
+    refresh_fn: object,
+    preselect_mg_ids: Optional[list[int]] = None,
+) -> None:
     muscle_groups: list[MuscleGroup] = get_all_muscle_groups()
 
     name_input = toga.TextInput(
@@ -51,7 +56,12 @@ def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> Non
     )
 
     # Build Switch list for muscle group multi-select
-    selected_ids: set[int] = set(ex.muscle_group_ids) if ex else set()
+    if ex:
+        selected_ids: set[int] = set(ex.muscle_group_ids)
+    elif preselect_mg_ids:
+        selected_ids = set(preselect_mg_ids)
+    else:
+        selected_ids = set()
     switches: list[tuple[MuscleGroup, toga.Switch]] = []
     switches_box = toga.Box(style=Pack(direction=COLUMN, margin_left=4))
     for mg in muscle_groups:
