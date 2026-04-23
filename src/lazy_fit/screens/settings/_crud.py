@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD
+from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD, COLOR_BTN_ADD, COLOR_BTN_DELETE
 
 
 def wrap_scroll(widget: toga.Widget) -> toga.Box:
@@ -36,7 +36,11 @@ def build_crud_screen(
     def on_add(widget: toga.Widget) -> None:
         show_form_fn(app, None, _refresh)
 
-    add_btn = toga.Button(t("add"), on_press=on_add, style=Pack(margin=SPACE_SM))
+    add_btn = toga.Button(
+        f"+ {t('add')}",
+        on_press=on_add,
+        style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_ADD),
+    )
 
     list_box = toga.Box(style=Pack(direction=COLUMN))
     list_box_ref[0] = list_box
@@ -85,7 +89,7 @@ def build_entity_form(
     ]
     if on_delete is not None:
         action_buttons.append(
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM))
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_DELETE))
         )
     form_box = toga.Box(
         children=[

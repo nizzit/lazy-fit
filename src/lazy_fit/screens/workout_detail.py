@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FONT_MD, SPACE_SM, SPACE_XS
+from lazy_fit.ui_constants import FONT_MD, SPACE_SM, SPACE_XS, COLOR_BTN_DELETE
 from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
@@ -123,7 +123,7 @@ def _add_set_row(
         children=[
             toga.Label(value_text, style=Pack(flex=1, margin=SPACE_XS)),
             toga.Button(t("edit_set"), on_press=on_edit, style=Pack(margin=SPACE_XS)),
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_XS)),
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_XS, background_color=COLOR_BTN_DELETE)),
         ],
         style=Pack(direction=ROW, margin=SPACE_XS),
     )

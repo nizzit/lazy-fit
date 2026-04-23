@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FORM_INPUT_W, SPACE_MD, SPACE_SM, SPACE_XS
+from lazy_fit.ui_constants import FORM_INPUT_W, SPACE_MD, SPACE_SM, SPACE_XS, COLOR_BTN_DELETE
 from lazy_fit.widgets import StepperInput
 from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set, delete_workout_set
 from lazy_fit.screens.settings._crud import wrap_scroll
@@ -89,7 +89,7 @@ def build(
 
     save_btn = toga.Button(t("save"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM))
     cancel_btn = toga.Button(t("cancel"), on_press=on_cancel, style=Pack(flex=1, margin=SPACE_SM))
-    delete_btn = toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM))
+    delete_btn = toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_DELETE))
 
     btn_row = toga.Box(
         children=[save_btn, cancel_btn, delete_btn],
