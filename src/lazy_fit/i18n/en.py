@@ -92,4 +92,8 @@ strings: dict[str, str] = {
     "reset_data": "Reset Data",
     "reset_confirm": "All data will be permanently deleted with no way to recover. Continue?",
     "reset_success": "Data has been reset successfully.",
+    # Confirm dialogs
+    "confirm_delete_muscle_group": "Delete '{name}'? All exercises and sets for this group will be deleted.",
+    "confirm_delete_exercise": "Delete '{name}'? All sets for this exercise will be deleted.",
+    "confirm_delete_equipment": "Delete '{name}'?",
 }

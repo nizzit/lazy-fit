@@ -33,11 +33,7 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
         def on_edit(widget: toga.Widget, eq: Equipment = eq) -> None:
             _show_form(app, eq, refresh_fn)
 
-        def on_delete(widget: toga.Widget, eq: Equipment = eq) -> None:
-            delete_equipment(eq.id)
-            refresh_fn()  # type: ignore[operator]
-
-        box.add(build_list_row(eq.name, on_edit, on_delete))
+        box.add(build_list_row(eq.name, on_edit))
 
 
 def _show_form(app: toga.App, eq: Optional[Equipment], refresh_fn: object) -> None:
@@ -63,11 +59,18 @@ def _show_form(app: toga.App, eq: Optional[Equipment], refresh_fn: object) -> No
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    def on_delete(widget: toga.Widget) -> None:
+    async def on_delete(widget: toga.Widget) -> None:
         if eq:
-            delete_equipment(eq.id)
-            refresh_fn()  # type: ignore[operator]
-            app.nav_pop()
+            result = await app.dialog(
+                toga.ConfirmDialog(
+                    t("delete"),
+                    t("confirm_delete_equipment").format(name=eq.name),
+                )
+            )
+            if result:
+                delete_equipment(eq.id)
+                refresh_fn()  # type: ignore[operator]
+                app.nav_pop()
 
     form = build_entity_form(
         [build_form_field("name", name_input)],

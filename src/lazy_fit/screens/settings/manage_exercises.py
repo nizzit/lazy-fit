@@ -9,6 +9,8 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import FORM_INPUT_W
+
 from lazy_fit.db.models import (
     Exercise,
     MuscleGroup,
@@ -36,11 +38,7 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
         def on_edit(widget: toga.Widget, ex: Exercise = ex) -> None:
             _show_form(app, ex, refresh_fn)
 
-        def on_delete(widget: toga.Widget, ex: Exercise = ex) -> None:
-            delete_exercise(ex.id)
-            refresh_fn()  # type: ignore[operator]
-
-        box.add(build_list_row(ex.name, on_edit, on_delete))
+        box.add(build_list_row(ex.name, on_edit))
 
 
 def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> None:
@@ -70,7 +68,7 @@ def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> Non
     type_select = toga.Selection(
         items=type_options,
         value=current_type,
-        style=Pack(flex=1, margin=4),
+        style=Pack(width=FORM_INPUT_W, margin=4),
     )
 
     error_label = toga.Label("", style=Pack(margin=4, color="red"))
@@ -99,13 +97,20 @@ def _show_form(app: toga.App, ex: Optional[Exercise], refresh_fn: object) -> Non
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    def on_delete(widget: toga.Widget) -> None:
+    async def on_delete(widget: toga.Widget) -> None:
         if ex:
-            delete_exercise(ex.id)
-            refresh_fn()  # type: ignore[operator]
-            app.nav_pop()
+            result = await app.dialog(
+                toga.ConfirmDialog(
+                    t("delete"),
+                    t("confirm_delete_exercise").format(name=ex.name),
+                )
+            )
+            if result:
+                delete_exercise(ex.id)
+                refresh_fn()  # type: ignore[operator]
+                app.nav_pop()
 
-    mg_label = toga.Label(t("muscle_group"), style=Pack(margin=4, width=140))
+    mg_label = toga.Label(t("muscle_group"), style=Pack(flex=1, margin=4))
     mg_row = toga.Box(
         children=[mg_label, switches_box],
         style=Pack(direction=ROW, margin=4),

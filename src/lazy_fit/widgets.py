@@ -8,6 +8,8 @@ import toga
 from toga.style import Pack
 from toga.style.pack import ROW
 
+from lazy_fit.ui_constants import STEPPER_INPUT_W
+
 
 class StepperInput(toga.Box):
     """NumberInput with explicit −/+ buttons.
@@ -38,7 +40,7 @@ class StepperInput(toga.Box):
             step=step,
             value=value,
             on_change=on_change,
-            style=Pack(flex=1),
+            style=Pack(width=STEPPER_INPUT_W),
         )
 
         if sys.platform == "android":

@@ -9,6 +9,13 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD
+
+
+def wrap_scroll(widget: toga.Widget) -> toga.Box:
+    """Wrap *widget* in a ScrollContainer for scrollable form screens."""
+    scroll = toga.ScrollContainer(content=widget, style=Pack(flex=1))
+    return toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
 
 
 def build_crud_screen(
@@ -29,7 +36,7 @@ def build_crud_screen(
     def on_add(widget: toga.Widget) -> None:
         show_form_fn(app, None, _refresh)
 
-    add_btn = toga.Button(t("add"), on_press=on_add, style=Pack(margin=8))
+    add_btn = toga.Button(t("add"), on_press=on_add, style=Pack(margin=SPACE_SM))
 
     list_box = toga.Box(style=Pack(direction=COLUMN))
     list_box_ref[0] = list_box
@@ -43,20 +50,25 @@ def build_crud_screen(
     return toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
 
 
-def build_list_row(name: str, on_edit: Callable, on_delete: Callable) -> toga.Box:
+def build_list_row(name: str, on_edit: Callable) -> toga.Box:
     return toga.Box(
         children=[
-            toga.Button(name, on_press=on_edit, style=Pack(flex=1, margin=4)),
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=4)),
+            toga.Button(name, on_press=on_edit, style=Pack(flex=1, margin=SPACE_XS)),
         ],
-        style=Pack(direction=ROW, margin=4),
+        style=Pack(direction=ROW, margin=SPACE_XS),
     )
 
 
 def build_form_field(label_key: str, widget: toga.Widget) -> toga.Box:
     return toga.Box(
-        children=[toga.Label(t(label_key), style=Pack(margin=4, width=140)), widget],
-        style=Pack(direction=ROW, margin=4),
+        children=[
+            toga.Label(t(label_key), style=Pack(margin=SPACE_XS)),
+            toga.Box(
+                children=[toga.Box(style=Pack(flex=1)), widget],
+                style=Pack(direction=ROW),
+            ),
+        ],
+        style=Pack(direction=COLUMN, margin=SPACE_XS),
     )
 
 
@@ -68,18 +80,19 @@ def build_entity_form(
     on_delete: Optional[Callable] = None,
 ) -> toga.Box:
     action_buttons: list[toga.Widget] = [
-        toga.Button(t("save"), on_press=on_save, style=Pack(margin=8)),
-        toga.Button(t("cancel"), on_press=on_cancel, style=Pack(margin=8)),
+        toga.Button(t("save"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM)),
+        toga.Button(t("cancel"), on_press=on_cancel, style=Pack(flex=1, margin=SPACE_SM)),
     ]
     if on_delete is not None:
         action_buttons.append(
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=8))
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM))
         )
-    return toga.Box(
+    form_box = toga.Box(
         children=[
             *fields,
             error_label,
-            toga.Box(children=action_buttons, style=Pack(direction=ROW, margin=8)),
+            toga.Box(children=action_buttons, style=Pack(direction=ROW, margin=SPACE_SM)),
         ],
-        style=Pack(direction=COLUMN, margin=16),
+        style=Pack(direction=COLUMN, margin=SPACE_MD),
     )
+    return wrap_scroll(form_box)

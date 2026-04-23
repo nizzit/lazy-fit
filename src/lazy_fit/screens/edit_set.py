@@ -9,8 +9,10 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import FORM_INPUT_W, SPACE_MD, SPACE_SM, SPACE_XS
 from lazy_fit.widgets import StepperInput
 from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set, delete_workout_set
+from lazy_fit.screens.settings._crud import wrap_scroll
 
 
 def build(
@@ -27,17 +29,20 @@ def build(
         min=0,
         step=1,
         value=initial_value,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=SPACE_XS),
     )
 
     label_key = "reps" if ws.exercise_type == "reps" else "duration"
-    input_row = toga.Box(
-        children=[
-            toga.Label(t(label_key), style=Pack(margin=4, width=120)),
-            value_input,
-        ],
-        style=Pack(direction=ROW, margin=4),
-    )
+    def _field(lk: str, widget: toga.Widget) -> toga.Box:
+        return toga.Box(
+            children=[
+                toga.Label(t(lk), style=Pack(margin=SPACE_XS)),
+                toga.Box(children=[toga.Box(style=Pack(flex=1)), widget], style=Pack(direction=ROW)),
+            ],
+            style=Pack(direction=COLUMN, margin=SPACE_XS),
+        )
+
+    input_row = _field(label_key, value_input)
 
     # Equipment picker
     equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
@@ -45,15 +50,9 @@ def build(
     equip_select = toga.Selection(
         items=equip_options,
         value=current_equip,
-        style=Pack(flex=1, margin=4),
+        style=Pack(width=FORM_INPUT_W, margin=SPACE_XS),
     )
-    equip_row = toga.Box(
-        children=[
-            toga.Label(t("equipment"), style=Pack(margin=4, width=120)),
-            equip_select,
-        ],
-        style=Pack(direction=ROW, margin=4),
-    )
+    equip_row = _field("equipment", equip_select)
 
     def on_save(widget: toga.Widget) -> None:
         raw_value = value_input.value
@@ -81,22 +80,24 @@ def build(
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    def on_delete(widget: toga.Widget) -> None:
-        delete_workout_set(ws.id)
-        on_saved()
-        app.nav_pop()
+    async def on_delete(widget: toga.Widget) -> None:
+        result = await app.dialog(toga.ConfirmDialog(t("delete"), t("confirm_delete_set")))
+        if result:
+            delete_workout_set(ws.id)
+            on_saved()
+            app.nav_pop()
 
-    save_btn = toga.Button(t("save"), on_press=on_save, style=Pack(margin=8))
-    cancel_btn = toga.Button(t("cancel"), on_press=on_cancel, style=Pack(margin=8))
-    delete_btn = toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=8))
+    save_btn = toga.Button(t("save"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM))
+    cancel_btn = toga.Button(t("cancel"), on_press=on_cancel, style=Pack(flex=1, margin=SPACE_SM))
+    delete_btn = toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM))
 
     btn_row = toga.Box(
         children=[save_btn, cancel_btn, delete_btn],
-        style=Pack(direction=ROW, margin=8),
+        style=Pack(direction=ROW, margin=SPACE_SM),
     )
 
     root = toga.Box(
         children=[input_row, equip_row, btn_row],
-        style=Pack(direction=COLUMN, margin=16),
+        style=Pack(direction=COLUMN, margin=SPACE_MD),
     )
-    return root
+    return wrap_scroll(root)

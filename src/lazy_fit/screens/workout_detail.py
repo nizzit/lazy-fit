@@ -9,6 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import FONT_MD, SPACE_SM, SPACE_XS
 from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
@@ -82,7 +83,7 @@ def _populate(
         groups.setdefault(s.exercise_name, []).append(s)
 
     for ex_name, ex_sets in groups.items():
-        box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=14)))
+        box.add(toga.Label(ex_name, style=Pack(margin=SPACE_SM, font_size=FONT_MD)))
         for ws in ex_sets:
             _add_set_row(box, ws, equipment_list, app, refresh_fn)
 
@@ -120,10 +121,10 @@ def _add_set_row(
 
     row = toga.Box(
         children=[
-            toga.Label(value_text, style=Pack(flex=1, margin=4)),
-            toga.Button(t("edit_set"), on_press=on_edit, style=Pack(margin=4)),
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=4)),
+            toga.Label(value_text, style=Pack(flex=1, margin=SPACE_XS)),
+            toga.Button(t("edit_set"), on_press=on_edit, style=Pack(margin=SPACE_XS)),
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_XS)),
         ],
-        style=Pack(direction=ROW, margin=(2, 8)),
+        style=Pack(direction=ROW, margin=SPACE_XS),
     )
     container.add(row)

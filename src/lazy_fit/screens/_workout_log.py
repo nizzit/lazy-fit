@@ -9,6 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import BTN_SET_W, FONT_SM, SPACE_XS
 from lazy_fit.db.models import WorkoutSet, get_sets_for_date
 
 
@@ -49,7 +50,7 @@ def populate_workout_log(
     per_row = _buttons_per_row(app)
 
     for ex_name, ex_sets in groups:
-        box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=13)))
+        box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=FONT_SM)))
         wrap = toga.Box(style=Pack(direction=COLUMN))
         current_row = toga.Box(style=Pack(direction=ROW))
         for i, ws in enumerate(ex_sets):
@@ -85,7 +86,7 @@ def _add_set_button(
         screen = build_edit(app, ws, _get_equip(), _on_saved)
         app.nav_push(screen, t("edit_set"))
 
-    container.add(toga.Button(label, on_press=on_press, style=Pack(margin=4, width=64)))
+    container.add(toga.Button(label, on_press=on_press, style=Pack(margin=SPACE_XS, width=BTN_SET_W)))
 
 
 def _buttons_per_row(app: toga.App, slot_width: int = 72) -> int:

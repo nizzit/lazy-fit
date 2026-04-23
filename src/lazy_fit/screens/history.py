@@ -10,6 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import FONT_MD, SPACE_SM
 from lazy_fit.db.models import get_workout_dates, delete_workout_by_date
 from lazy_fit.screens._workout_log import populate_workout_log
 
@@ -65,11 +66,11 @@ def _add_date_section(
     container.add(
         toga.Box(
             children=[
-                toga.Label(display_date, style=Pack(flex=1, font_size=15, margin=(12, 8, 2, 8))),
+                toga.Label(display_date, style=Pack(flex=1, font_size=FONT_MD, margin=SPACE_SM)),
                 toga.Button(
                     t("delete_workout"),
                     on_press=on_delete_workout,
-                    style=Pack(margin=(8, 8, 2, 8)),
+                    style=Pack(margin=SPACE_SM),
                 ),
             ],
             style=Pack(direction=ROW),

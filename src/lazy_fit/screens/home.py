@@ -8,6 +8,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.db.models import get_last_exercise_today
+from lazy_fit.ui_constants import BTN_MENU_W, SPACE_SM, SPACE_LG
 
 
 def build(app: toga.App) -> toga.Box:
@@ -43,7 +44,7 @@ def build(app: toga.App) -> toga.Box:
         from lazy_fit.screens.settings import build as build_settings
         app.nav_push(build_settings(app), t("settings_title"))
 
-    btn_style = Pack(margin=12, width=240)
+    btn_style = Pack(margin=SPACE_SM, width=BTN_MENU_W)
 
     buttons: list[toga.Widget] = []
 
@@ -58,6 +59,6 @@ def build(app: toga.App) -> toga.Box:
 
     root = toga.Box(
         children=buttons,
-        style=Pack(direction=COLUMN, align_items="center", margin=32, flex=1),
+        style=Pack(direction=COLUMN, align_items="center", margin=SPACE_LG, flex=1),
     )
     return root

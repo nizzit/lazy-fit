@@ -8,6 +8,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t, set_language, get_language
 from lazy_fit.db.models import set_setting
+from lazy_fit.ui_constants import BTN_MENU_W, SPACE_SM, SPACE_LG
 
 
 def build(app: toga.App) -> toga.Box:
@@ -50,8 +51,9 @@ def build(app: toga.App) -> toga.Box:
         from lazy_fit.screens.home import build as build_home
 
         app.nav_replace_root(build_home(app), t("app_name"))
+        app.nav_push(build(app), t("settings"))
 
-    btn_style = Pack(margin=12, width=280)
+    btn_style = Pack(margin=SPACE_SM, width=BTN_MENU_W)
 
     return toga.Box(
         children=[
@@ -67,5 +69,5 @@ def build(app: toga.App) -> toga.Box:
             toga.Button(t("data_management"), on_press=on_data, style=btn_style),
             toga.Button(t("lang_toggle"), on_press=on_lang_toggle, style=btn_style),
         ],
-        style=Pack(direction=COLUMN, align_items="center", margin=32),
+        style=Pack(direction=COLUMN, align_items="center", margin=SPACE_LG, flex=1),
     )

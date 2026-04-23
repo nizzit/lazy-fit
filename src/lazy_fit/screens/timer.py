@@ -17,6 +17,7 @@ from lazy_fit.android_api import (
     send_notification,
 )
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import BTN_TIMER_W, FONT_LG, FONT_XL
 
 _log = logging.getLogger("lazy_fit")
 
@@ -154,14 +155,14 @@ def build(
 
     time_label = toga.Label(
         _fmt_time(elapsed[0]),
-        style=Pack(font_size=64, margin_bottom=24, text_align="center"),
+        style=Pack(font_size=FONT_XL, margin_bottom=24, text_align="center"),
     )
     time_label_ref[0] = time_label
 
     stop_btn = toga.Button(
         stop_label,
         on_press=_stop_and_done,
-        style=Pack(margin=8, width=160),
+        style=Pack(margin=8, width=BTN_TIMER_W),
     )
 
     center_children: list[toga.Widget] = []
@@ -169,7 +170,7 @@ def build(
         center_children.append(
             toga.Label(
                 header,
-                style=Pack(font_size=18, margin_bottom=32, text_align="center"),
+                style=Pack(font_size=FONT_LG, margin_bottom=32, text_align="center"),
             )
         )
     center_children.append(time_label)

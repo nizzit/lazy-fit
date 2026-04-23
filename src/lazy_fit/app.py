@@ -12,6 +12,7 @@ from toga.style.pack import COLUMN, ROW
 from lazy_fit.i18n import t, set_language
 from lazy_fit.db.connection import set_db_path, init_db
 from lazy_fit.db.models import get_setting
+from lazy_fit.ui_constants import COLOR_TIMER_BANNER
 
 
 class LazyFitApp(toga.App):
@@ -122,7 +123,7 @@ class LazyFitApp(toga.App):
             banner_btn = toga.Button(
                 f"⏱ {at['banner_text']}",
                 on_press=lambda w: self.restore_timer(),
-                style=Pack(margin=4, width=120, background_color="#66bb6a"),
+                style=Pack(margin=4, width=120, background_color=COLOR_TIMER_BANNER),
             )
             at["banner_label"] = banner_btn
             banner_row = toga.Box(

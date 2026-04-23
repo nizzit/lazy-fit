@@ -7,7 +7,9 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import FONT_MD, SPACE_MD, SPACE_XS
 from lazy_fit.widgets import StepperInput
+from lazy_fit.screens.settings._crud import build_form_field, wrap_scroll
 
 
 def build(app: toga.App) -> toga.Box:
@@ -35,35 +37,35 @@ def build(app: toga.App) -> toga.Box:
         "",
         value=(current_mode == "since_monday"),
         on_change=on_since_monday,
-        style=Pack(margin_left=8),
+        style=Pack(margin_left=SPACE_MD),
     )
 
     last7_switch = toga.Switch(
         "",
         value=(current_mode == "last_7_days"),
         on_change=on_last_7_days,
-        style=Pack(margin_left=8),
+        style=Pack(margin_left=SPACE_MD),
     )
 
     week_section = toga.Box(
         children=[
             toga.Label(
                 t("training_period_week_section"),
-                style=Pack(margin=4, font_weight="bold"),
+                style=Pack(margin=SPACE_XS, font_size=FONT_MD, font_weight="bold"),
             ),
             toga.Box(
                 children=[
-                    toga.Label(t("training_period_since_monday"), style=Pack(margin=4, flex=1)),
+                    toga.Label(t("training_period_since_monday"), style=Pack(margin=SPACE_XS, flex=1)),
                     monday_switch,
                 ],
-                style=Pack(direction=ROW, margin=4),
+                style=Pack(direction=ROW, margin=SPACE_XS),
             ),
             toga.Box(
                 children=[
-                    toga.Label(t("training_period_last_7_days"), style=Pack(margin=4, flex=1)),
+                    toga.Label(t("training_period_last_7_days"), style=Pack(margin=SPACE_XS, flex=1)),
                     last7_switch,
                 ],
-                style=Pack(direction=ROW, margin=4),
+                style=Pack(direction=ROW, margin=SPACE_XS),
             ),
         ],
         style=Pack(direction=COLUMN),
@@ -113,7 +115,7 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_rest,
         on_change=on_rest_days_change,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=SPACE_XS),
     )
 
     exercise_limit_stepper = StepperInput(
@@ -122,7 +124,7 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_limit_exercise,
         on_change=on_exercise_limit_change,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=SPACE_XS),
     )
 
     mg_limit_stepper = StepperInput(
@@ -131,45 +133,18 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_limit_mg,
         on_change=on_mg_limit_change,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=SPACE_XS),
     )
-
-    def _limit_row(label_key: str, stepper: StepperInput) -> toga.Box:
-        return toga.Box(
-            children=[
-                toga.Box(
-                    children=[toga.Label(t(label_key), style=Pack(margin_left=4))],
-                    style=Pack(direction=ROW),
-                ),
-                toga.Box(
-                    children=[toga.Box(style=Pack(flex=1)), stepper],
-                    style=Pack(direction=ROW, margin_bottom=4),
-                ),
-            ],
-            style=Pack(direction=COLUMN, margin_top=4),
-        )
 
     rest_section = toga.Box(
         children=[
             toga.Label(
                 t("rest_days_section"),
-                style=Pack(margin=4, font_weight="bold"),
+                style=Pack(margin=SPACE_XS, font_size=FONT_MD, font_weight="bold"),
             ),
-            toga.Box(
-                children=[
-                    toga.Box(
-                        children=[toga.Label(t("rest_days_label"), style=Pack(margin_left=4))],
-                        style=Pack(direction=ROW),
-                    ),
-                    toga.Box(
-                        children=[toga.Box(style=Pack(flex=1)), rest_stepper],
-                        style=Pack(direction=ROW, margin_bottom=4),
-                    ),
-                ],
-                style=Pack(direction=COLUMN, margin_top=4),
-            ),
-            _limit_row("daily_sets_limit_exercise_label", exercise_limit_stepper),
-            _limit_row("daily_sets_limit_muscle_group_label", mg_limit_stepper),
+            build_form_field("rest_days_label", rest_stepper),
+            build_form_field("daily_sets_limit_exercise_label", exercise_limit_stepper),
+            build_form_field("daily_sets_limit_muscle_group_label", mg_limit_stepper),
         ],
         style=Pack(direction=COLUMN),
     )
@@ -178,7 +153,8 @@ def build(app: toga.App) -> toga.Box:
     # Root                                                                 #
     # ------------------------------------------------------------------ #
 
-    return toga.Box(
+    form_box = toga.Box(
         children=[week_section, rest_section],
-        style=Pack(direction=COLUMN, margin=16),
+        style=Pack(direction=COLUMN, margin=SPACE_MD),
     )
+    return wrap_scroll(form_box)

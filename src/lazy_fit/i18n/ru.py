@@ -92,4 +92,8 @@ strings: dict[str, str] = {
     "reset_data": "Сброс данных",
     "reset_confirm": "Все данные будут удалены без возможности восстановления. Продолжить?",
     "reset_success": "Данные успешно сброшены.",
+    # Confirm dialogs
+    "confirm_delete_muscle_group": "Удалить «{name}»? Будут удалены все упражнения и подходы этой группы.",
+    "confirm_delete_exercise": "Удалить «{name}»? Будут удалены все подходы для этого упражнения.",
+    "confirm_delete_equipment": "Удалить «{name}»?",
 }

@@ -10,6 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
+from lazy_fit.ui_constants import FONT_LG, FONT_MD, FORM_INPUT_W, SPACE_SM, SPACE_XS
 from lazy_fit.widgets import StepperInput
 from lazy_fit.screens._workout_log import populate_workout_log
 from lazy_fit.db.models import (
@@ -34,7 +35,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     last_equipment_id = get_last_equipment_for_exercise(exercise.id)
 
     # ------------------------------------------------------------------ refs
-    value_input_ref: list[Optional[toga.NumberInput]] = [None]
+    value_input_ref: list[Optional[StepperInput]] = [None]
     equip_select_ref: list[Optional[toga.Selection]] = [None]
     history_box_ref: list[Optional[toga.Box]] = [None]
 
@@ -126,36 +127,35 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     # ------------------------------------------------------------------ build UI
     header = toga.Label(
         f"{exercise.name}  ·  {', '.join(exercise.muscle_group_names)}",
-        style=Pack(margin=8, font_size=16),
+        style=Pack(margin=SPACE_SM, font_size=FONT_LG),
     )
 
     value_input = StepperInput(
         min=0,
         step=1,
         value=last_value if last_value is not None else 0,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=4),
     )
     value_input_ref[0] = value_input
 
-    if exercise.type == "reps":
-        input_label = toga.Label(t("reps"), style=Pack(margin=4, width=120))
-        input_row = toga.Box(
-            children=[input_label, value_input],
-            style=Pack(direction=ROW, margin=4),
+    def _field(label_key: str, widget: toga.Widget) -> toga.Box:
+        return toga.Box(
+            children=[
+                toga.Label(t(label_key), style=Pack(margin=SPACE_XS)),
+                toga.Box(children=[toga.Box(style=Pack(flex=1)), widget], style=Pack(direction=ROW)),
+            ],
+            style=Pack(direction=COLUMN, margin=SPACE_XS),
         )
-        form_children: list[toga.Widget] = [input_row]
+
+    if exercise.type == "reps":
+        form_children: list[toga.Widget] = [_field("reps", value_input)]
     else:
         start_btn = toga.Button(
             t("timer_start"),
             on_press=on_start_timer,
-            style=Pack(margin=4),
+            style=Pack(margin=SPACE_XS),
         )
-        input_label = toga.Label(t("duration"), style=Pack(margin=4, width=120))
-        input_row = toga.Box(
-            children=[input_label, value_input],
-            style=Pack(direction=ROW, margin=4),
-        )
-        form_children = [start_btn, input_row]
+        form_children = [start_btn, _field("duration", value_input)]
 
     equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
     _last_equip_name = next(
@@ -164,19 +164,19 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     equip_select = toga.Selection(
         items=equip_options,
         value=_last_equip_name if _last_equip_name is not None else t("no_equipment"),
-        style=Pack(flex=1, margin=4),
+        style=Pack(width=FORM_INPUT_W, margin=4),
     )
     equip_select_ref[0] = equip_select
 
     equip_row = toga.Box(
         children=[
-            toga.Label(t("equipment"), style=Pack(margin=4, width=120)),
-            equip_select,
+            toga.Label(t("equipment"), style=Pack(margin=SPACE_XS)),
+            toga.Box(children=[toga.Box(style=Pack(flex=1)), equip_select], style=Pack(direction=ROW)),
         ],
-        style=Pack(direction=ROW, margin=4),
+        style=Pack(direction=COLUMN, margin=SPACE_XS),
     )
 
-    save_btn = toga.Button(t("save_set"), on_press=on_save, style=Pack(margin=12))
+    save_btn = toga.Button(t("save_set"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM))
 
     form_box = toga.Box(
         children=form_children + [equip_row, save_btn],
@@ -185,7 +185,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     history_title = toga.Label(
         t("todays_workout"),
-        style=Pack(margin=(12, 8, 4, 8), font_size=14),
+        style=Pack(margin=SPACE_SM, font_size=FONT_MD),
     )
     history_box = toga.Box(style=Pack(direction=COLUMN))
     history_box_ref[0] = history_box

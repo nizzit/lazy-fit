@@ -8,6 +8,7 @@ import toga
 from toga.style import Pack
 
 from lazy_fit.i18n import t
+from lazy_fit.widgets import StepperInput
 from lazy_fit.db.models import (
     MuscleGroup,
     get_all_muscle_groups,
@@ -33,11 +34,7 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
         def on_edit(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
             _show_form(app, mg, refresh_fn)
 
-        def on_delete(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
-            delete_muscle_group(mg.id)
-            refresh_fn()  # type: ignore[operator]
-
-        box.add(build_list_row(mg.name, on_edit, on_delete))
+        box.add(build_list_row(mg.name, on_edit))
 
 
 def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> None:
@@ -46,17 +43,17 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         placeholder=t("name"),
         style=Pack(flex=1, margin=4),
     )
-    weekly_input = toga.NumberInput(
+    weekly_input = StepperInput(
         min=0,
         step=1,
         value=mg.weekly_sets if (mg and mg.weekly_sets) else 0,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=4),
     )
-    rest_days_input = toga.NumberInput(
+    rest_days_input = StepperInput(
         min=0,
         step=1,
         value=mg.rest_days if (mg and mg.rest_days is not None) else 0,
-        style=Pack(flex=1, margin=4),
+        style=Pack(margin=4),
     )
     error_label = toga.Label("", style=Pack(margin=4, color="red"))
 
@@ -91,11 +88,18 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    def on_delete(widget: toga.Widget) -> None:
+    async def on_delete(widget: toga.Widget) -> None:
         if mg:
-            delete_muscle_group(mg.id)
-            refresh_fn()  # type: ignore[operator]
-            app.nav_pop()
+            result = await app.dialog(
+                toga.ConfirmDialog(
+                    t("delete"),
+                    t("confirm_delete_muscle_group").format(name=mg.name),
+                )
+            )
+            if result:
+                delete_muscle_group(mg.id)
+                refresh_fn()  # type: ignore[operator]
+                app.nav_pop()
 
     form = build_entity_form(
         [
