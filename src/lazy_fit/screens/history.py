@@ -14,6 +14,8 @@ from lazy_fit.ui_constants import FONT_MD, SPACE_SM
 from lazy_fit.db.models import get_workout_dates, delete_workout_by_date
 from lazy_fit.screens._workout_log import populate_workout_log
 
+_BATCH_SIZE = 5
+
 
 def build(app: toga.App) -> toga.Box:
     """Build and return the history screen."""
@@ -26,23 +28,43 @@ def build(app: toga.App) -> toga.Box:
             return
         for child in list(box.children):
             box.remove(child)
-        _fill(box, app, _rebuild)
+        _start_fill(box, app, _rebuild)
 
     scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
     scroll_content_ref[0] = scroll_content
-    _fill(scroll_content, app, _rebuild)
+    _start_fill(scroll_content, app, _rebuild)
 
     scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
     return toga.Box(children=[scroll], style=Pack(direction=COLUMN, flex=1))
 
 
-def _fill(container: toga.Box, app: toga.App, on_changed: object) -> None:
+def _start_fill(
+    container: toga.Box,
+    app: toga.App,
+    on_changed: object,
+) -> None:
     dates = get_workout_dates()
     if not dates:
         container.add(toga.Label(t("no_history"), style=Pack(margin=16)))
         return
-    for date in dates:
+
+    # First batch — sync, so screen shows content before it's pushed onto nav stack
+    for date in dates[:_BATCH_SIZE]:
         _add_date_section(container, date, app, on_changed)
+
+    remaining = dates[_BATCH_SIZE:]
+    if not remaining:
+        return
+
+    async def _load_rest(widget: object) -> None:
+        import asyncio
+
+        for i in range(0, len(remaining), _BATCH_SIZE):
+            for date in remaining[i : i + _BATCH_SIZE]:
+                _add_date_section(container, date, app, on_changed)
+            await asyncio.sleep(0)
+
+    app.add_background_task(_load_rest)
 
 
 def _add_date_section(

@@ -1,19 +1,12 @@
-# Python-generated files
 __pycache__/
+.gradle
+.pi
+.venv
+*.egg-info
+*.log
 *.py[oc]
 build/
 dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
-
-# Logs
-*.log
-
 gradle
-.gradle
-
-.crush/
+rag_storage/
+wheels/
