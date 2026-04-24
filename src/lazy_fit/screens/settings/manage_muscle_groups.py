@@ -19,6 +19,7 @@ from lazy_fit.db.models import (
     update_muscle_group,
     delete_muscle_group,
 )
+from lazy_fit.ui_constants import COLOR_BTN_ADD, SPACE_SM, SPACE_XS
 from lazy_fit.screens.settings._crud import (
     build_crud_screen,
     build_list_row,
@@ -49,9 +50,13 @@ def _build_exercises_section(
         from lazy_fit.screens.settings.manage_exercises import _show_form as _show_exercise_form
         _show_exercise_form(app, None, refresh_fn, preselect_mg_ids=[mg.id])
 
-    section = toga.Box(style=Pack(direction=COLUMN, margin=4))
-    section.add(toga.Label(t("exercises"), style=Pack(margin=4)))
-    section.add(toga.Button(f"+ {t('add')}", on_press=on_add_exercise, style=Pack(margin=4)))
+    section = toga.Box(style=Pack(direction=COLUMN, margin=SPACE_XS))
+    section.add(toga.Label(t("exercises"), style=Pack(margin=SPACE_XS)))
+    section.add(toga.Button(
+        f"+ {t('add')}",
+        on_press=on_add_exercise,
+        style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_ADD),
+    ))
 
     if not exercises:
         section.add(toga.Label(t("no_exercises_in_group"), style=Pack(margin=4)))
