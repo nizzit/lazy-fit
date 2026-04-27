@@ -7,13 +7,13 @@ from toga.style import Pack
 from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
-from lazy_fit.db.models import get_exercises_sorted_for_muscle_group, MuscleGroup, Exercise
+from lazy_fit.db.models import get_exercises_by_muscle_group, MuscleGroup, Exercise
 
 
 def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
     """Build and return the exercises screen for *muscle_group*."""
 
-    exercises: list[Exercise] = get_exercises_sorted_for_muscle_group(muscle_group.id)
+    exercises: list[Exercise] = get_exercises_by_muscle_group(muscle_group.id)
 
     scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
 

@@ -80,10 +80,6 @@ def build(app: toga.App) -> toga.Box:
     except ValueError:
         saved_rest = 0
     try:
-        saved_limit_exercise = int(get_setting("daily_sets_limit_exercise", "0"))
-    except ValueError:
-        saved_limit_exercise = 0
-    try:
         saved_limit_mg = int(get_setting("daily_sets_limit_muscle_group", "0"))
     except ValueError:
         saved_limit_mg = 0
@@ -94,13 +90,6 @@ def build(app: toga.App) -> toga.Box:
         except (TypeError, ValueError):
             val = 0
         set_setting("rest_days", str(val))
-
-    def on_exercise_limit_change(widget: toga.Widget) -> None:
-        try:
-            val = int(widget.value or 0)
-        except (TypeError, ValueError):
-            val = 0
-        set_setting("daily_sets_limit_exercise", str(val))
 
     def on_mg_limit_change(widget: toga.Widget) -> None:
         try:
@@ -115,15 +104,6 @@ def build(app: toga.App) -> toga.Box:
         step=1,
         value=saved_rest,
         on_change=on_rest_days_change,
-        style=Pack(margin=SPACE_XS),
-    )
-
-    exercise_limit_stepper = StepperInput(
-        min=0,
-        max=50,
-        step=1,
-        value=saved_limit_exercise,
-        on_change=on_exercise_limit_change,
         style=Pack(margin=SPACE_XS),
     )
 
@@ -143,7 +123,6 @@ def build(app: toga.App) -> toga.Box:
                 style=Pack(margin=SPACE_XS, font_size=FONT_MD, font_weight="bold"),
             ),
             build_form_field("rest_days_label", rest_stepper),
-            build_form_field("daily_sets_limit_exercise_label", exercise_limit_stepper),
             build_form_field("daily_sets_limit_muscle_group_label", mg_limit_stepper),
         ],
         style=Pack(direction=COLUMN),

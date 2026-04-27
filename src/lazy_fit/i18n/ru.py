@@ -80,7 +80,6 @@ strings: dict[str, str] = {
     "rest_days_label": "Отдых между тренировками (дни)",
     "rest_days_override_label": "Отдых для группы (дни, 0 — глобальный)",
     "rest_days_remaining": "Отдых: {days} дн.",
-    "daily_sets_limit_exercise_label": "Лимит подходов на упражнение в день",
     "daily_sets_limit_muscle_group_label": "Лимит подходов на группу мышц в день",
     # Export / Import
     "data_management": "Управление данными",

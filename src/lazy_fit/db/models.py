@@ -246,56 +246,6 @@ def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
     return _rows_to_exercises(rows)
 
 
-def get_exercises_sorted_for_muscle_group(mg_id: int) -> list[Exercise]:
-    """Return exercises for *mg_id* sorted by daily-limit progress.
-
-    Exercises that have reached ``daily_sets_limit_exercise`` today sink to the
-    bottom.  Within each tier they are sorted alphabetically.
-    """
-    from datetime import date
-
-    exercises = get_exercises_by_muscle_group(mg_id)
-    if not exercises:
-        return exercises
-
-    try:
-        ex_limit = int(get_setting("daily_sets_limit_exercise", "0"))
-    except ValueError:
-        ex_limit = 0
-
-    if ex_limit <= 0:
-        # No per-exercise limit configured — return alphabetical order as-is.
-        return exercises
-
-    today = date.today().isoformat()
-    conn = get_connection()
-
-    # Fetch today's set counts for all exercises in one query.
-    ex_ids = [ex.id for ex in exercises]
-    placeholders = ",".join("?" * len(ex_ids))
-    rows = conn.execute(
-        f"""
-        SELECT exercise_id, COUNT(*) AS cnt
-        FROM workout_set
-        WHERE date = ? AND exercise_id IN ({placeholders})
-        GROUP BY exercise_id
-        """,
-        [today, *ex_ids],
-    ).fetchall()
-    today_counts: dict[int, int] = {r["exercise_id"]: r["cnt"] for r in rows}
-
-    def sort_key(ex: Exercise) -> tuple:
-        done = today_counts.get(ex.id, 0)
-        limit_reached = done >= ex_limit
-        # Reached limit → tier 1 (bottom); not reached → tier 0 (top).
-        # Within tier, sort by progress ratio desc so closest-to-limit comes first,
-        # then alphabetically.
-        ratio = done / ex_limit
-        return (1 if limit_reached else 0, ratio, ex.name)
-
-    exercises.sort(key=sort_key)
-    return exercises
-
 
 def create_exercise(name: str, muscle_group_ids: list[int], ex_type: str) -> Exercise:
     conn = get_connection()
