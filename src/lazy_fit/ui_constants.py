@@ -27,3 +27,4 @@ COLOR_TIMER_BANNER: str = "#66bb6a"
 COLOR_BTN_BACK: str = "#e0f2f1"   # teal 50 — light tint of primary
 COLOR_BTN_ADD: str = "#009688"    # teal 500 — primary colour, main action
 COLOR_BTN_DELETE: str = "#ef9a9a" # red 200 — pastel red, complementary to teal
+COLOR_BTN_RESTING: str = "#f5f5f5" # grey 100 — very light, clearly secondary; used for items requiring rest

@@ -39,6 +39,7 @@ class Exercise:
     type: str  # 'reps' | 'time'
     muscle_group_ids: list[int] = field(default_factory=list)
     muscle_group_names: list[str] = field(default_factory=list)
+    rest_days_remaining: Optional[int] = None  # computed: max rest days remaining across linked muscle groups
 
 
 @dataclass
@@ -243,7 +244,25 @@ def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
         )
         .fetchall()
     )
-    return _rows_to_exercises(rows)
+    exercises = _rows_to_exercises(rows)
+
+    # Build rest map from muscle group stats: mg_id -> rest_days_remaining
+    mg_stats = get_muscle_groups_with_weekly_stats()
+    mg_rest: dict[int, int] = {
+        mg.id: mg.rest_days_remaining
+        for mg in mg_stats
+        if mg.rest_days_remaining is not None and mg.rest_days_remaining > 0
+    }
+
+    if mg_rest:
+        for ex in exercises:
+            remaining_values = [
+                mg_rest[mid] for mid in ex.muscle_group_ids if mid in mg_rest
+            ]
+            if remaining_values:
+                ex.rest_days_remaining = max(remaining_values)
+
+    return exercises
 
 
 
