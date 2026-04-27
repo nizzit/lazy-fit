@@ -17,7 +17,7 @@ from lazy_fit.db.models import (
     Exercise,
     get_all_equipment,
     create_workout_set,
-    get_last_value_for_exercise,
+    get_default_value_for_next_set,
     get_last_equipment_for_exercise,
 )
 
@@ -31,8 +31,11 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     today = _today()
     equipment_list = get_all_equipment()
-    last_value = get_last_value_for_exercise(exercise.id)
     last_equipment_id = get_last_equipment_for_exercise(exercise.id)
+
+    def _default_value() -> int:
+        val = get_default_value_for_next_set(exercise.id, today)
+        return val if val is not None else 0
 
     # ------------------------------------------------------------------ refs
     value_input_ref: list[Optional[StepperInput]] = [None]
@@ -110,7 +113,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
             )
 
         if value_input_ref[0]:
-            value_input_ref[0].value = int_value
+            value_input_ref[0].value = _default_value()
 
         _refresh_history()
         _start_rest_timer()
@@ -133,7 +136,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     value_input = StepperInput(
         min=0,
         step=1,
-        value=last_value if last_value is not None else 0,
+        value=_default_value(),
         style=Pack(margin=4),
     )
     value_input_ref[0] = value_input
