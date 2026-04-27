@@ -10,7 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FONT_MD, SPACE_SM
+from lazy_fit.ui_constants import COLOR_BTN_DANGER, FONT_MD, SPACE_SM
 from lazy_fit.db.models import get_workout_dates, delete_workout_by_date
 from lazy_fit.screens._workout_log import populate_workout_log
 
@@ -92,7 +92,7 @@ def _add_date_section(
                 toga.Button(
                     t("delete_workout"),
                     on_press=on_delete_workout,
-                    style=Pack(margin=SPACE_SM),
+                    style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER),
                 ),
             ],
             style=Pack(direction=ROW),

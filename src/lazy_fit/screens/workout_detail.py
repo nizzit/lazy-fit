@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import COLOR_BTN_DELETE, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_MD, SPACE_SM, SPACE_XS
+from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_MD, SPACE_SM, SPACE_XS
 from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
@@ -49,7 +49,7 @@ def build(app: toga.App, date: str) -> toga.Box:
     delete_btn = toga.Button(
         t("delete_workout"),
         on_press=on_delete_workout,
-        style=Pack(margin=8),
+        style=Pack(margin=8, background_color=COLOR_BTN_DANGER),
     )
 
     content_box = toga.Box(style=Pack(direction=COLUMN))
@@ -145,8 +145,8 @@ def _add_set_row(
     row = toga.Box(
         children=[
             toga.Label(value_text, style=label_style),
-            toga.Button(t("edit_set"), on_press=on_edit, style=Pack(margin=SPACE_XS)),
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_XS, background_color=COLOR_BTN_DELETE)),
+            toga.Button(t("edit_set"), on_press=on_edit, style=Pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY)),
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_XS, background_color=COLOR_BTN_DANGER)),
         ],
         style=Pack(direction=ROW, margin=SPACE_XS),
     )

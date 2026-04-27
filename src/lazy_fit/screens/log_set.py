@@ -10,7 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FONT_LG, FONT_MD, FORM_INPUT_W, SPACE_SM, SPACE_XS
+from lazy_fit.ui_constants import COLOR_BTN_ADD, COLOR_BTN_PRIMARY, FONT_LG, FONT_MD, FORM_INPUT_W, SPACE_SM, SPACE_XS
 from lazy_fit.widgets import StepperInput
 from lazy_fit.screens._workout_log import populate_workout_log
 from lazy_fit.db.models import (
@@ -156,7 +156,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         start_btn = toga.Button(
             t("timer_start"),
             on_press=on_start_timer,
-            style=Pack(margin=SPACE_XS),
+            style=Pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY),
         )
         form_children = [start_btn, _field("duration", value_input)]
 
@@ -179,7 +179,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         style=Pack(direction=COLUMN, margin=SPACE_XS),
     )
 
-    save_btn = toga.Button(t("save_set"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM))
+    save_btn = toga.Button(t("save_set"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_ADD))
 
     form_box = toga.Box(
         children=form_children + [equip_row, save_btn],

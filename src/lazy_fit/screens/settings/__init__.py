@@ -8,7 +8,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t, set_language, get_language
 from lazy_fit.db.models import set_setting
-from lazy_fit.ui_constants import BTN_MENU_W, SPACE_SM, SPACE_LG
+from lazy_fit.ui_constants import BTN_MENU_W, SPACE_SM, SPACE_LG, COLOR_BTN_PRIMARY
 
 
 def build(app: toga.App) -> toga.Box:
@@ -53,7 +53,7 @@ def build(app: toga.App) -> toga.Box:
         app.nav_replace_root(build_home(app), t("app_name"))
         app.nav_push(build(app), t("settings"))
 
-    btn_style = Pack(margin=SPACE_SM, width=BTN_MENU_W)
+    btn_style = Pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_PRIMARY)
 
     return toga.Box(
         children=[

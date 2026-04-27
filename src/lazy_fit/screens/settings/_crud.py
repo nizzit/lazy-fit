@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD, COLOR_BTN_ADD, COLOR_BTN_DELETE
+from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD, COLOR_BTN_PRIMARY, COLOR_BTN_ADD, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER
 
 
 def wrap_scroll(widget: toga.Widget) -> toga.Box:
@@ -57,7 +57,7 @@ def build_crud_screen(
 def build_list_row(name: str, on_edit: Callable) -> toga.Box:
     return toga.Box(
         children=[
-            toga.Button(name, on_press=on_edit, style=Pack(flex=1, margin=SPACE_XS)),
+            toga.Button(name, on_press=on_edit, style=Pack(flex=1, margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY)),
         ],
         style=Pack(direction=ROW, margin=SPACE_XS),
     )
@@ -84,12 +84,12 @@ def build_entity_form(
     on_delete: Optional[Callable] = None,
 ) -> toga.Box:
     action_buttons: list[toga.Widget] = [
-        toga.Button(t("save"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM)),
-        toga.Button(t("cancel"), on_press=on_cancel, style=Pack(flex=1, margin=SPACE_SM)),
+        toga.Button(t("save"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY)),
+        toga.Button(t("cancel"), on_press=on_cancel, style=Pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_SECONDARY)),
     ]
     if on_delete is not None:
         action_buttons.append(
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_DELETE))
+            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER))
         )
     form_box = toga.Box(
         children=[

@@ -19,7 +19,7 @@ from lazy_fit.db.models import (
     update_muscle_group,
     delete_muscle_group,
 )
-from lazy_fit.ui_constants import COLOR_BTN_ADD, SPACE_SM, SPACE_XS
+from lazy_fit.ui_constants import COLOR_BTN_ADD, COLOR_ERROR, SPACE_SM, SPACE_XS
 from lazy_fit.screens.settings._crud import (
     build_crud_screen,
     build_list_row,
@@ -90,7 +90,7 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         value=mg.rest_days if (mg and mg.rest_days is not None) else 0,
         style=Pack(margin=4),
     )
-    error_label = toga.Label("", style=Pack(margin=4, color="red"))
+    error_label = toga.Label("", style=Pack(margin=4, color=COLOR_ERROR))
 
     def on_save(widget: toga.Widget) -> None:
         name = name_input.value.strip()

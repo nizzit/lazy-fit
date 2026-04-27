@@ -8,7 +8,7 @@ import toga
 from toga.style import Pack
 from toga.style.pack import ROW
 
-from lazy_fit.ui_constants import STEPPER_INPUT_W
+from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, STEPPER_INPUT_W
 
 
 class StepperInput(toga.Box):
@@ -47,12 +47,12 @@ class StepperInput(toga.Box):
             minus_btn = toga.Button(
                 "−",
                 on_press=self._on_decrement,
-                style=Pack(width=48, margin=2),
+                style=Pack(width=48, margin=2, background_color=COLOR_BTN_PRIMARY),
             )
             plus_btn = toga.Button(
                 "+",
                 on_press=self._on_increment,
-                style=Pack(width=48, margin=2),
+                style=Pack(width=48, margin=2, background_color=COLOR_BTN_PRIMARY),
             )
             children: list[toga.Widget] = [self._input, minus_btn, plus_btn]
         else:

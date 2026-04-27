@@ -24,10 +24,12 @@ BTN_TIMER_W: int = 160
 BTN_SET_W: int = 64
 
 # Colors
-COLOR_TIMER_BANNER: str = "#66bb6a"
-COLOR_BTN_BACK: str = "#e0f2f1"   # teal 50 — light tint of primary
-COLOR_BTN_ADD: str = "#009688"    # teal 500 — primary colour, main action
-COLOR_BTN_DELETE: str = "#ef9a9a" # red 200 — pastel red, complementary to teal
-COLOR_BTN_RESTING: str = "#f5f5f5" # grey 100 — very light, clearly secondary; used for items requiring rest
-COLOR_DIFF_UP: str = "#4CAF50"    # Material Green 500 — set value improved vs previous
-COLOR_DIFF_DOWN: str = "#F44336"  # Material Red 500 — set value dropped vs previous
+# Base palette: teal #26a69a (accent) · pink #ff4081 (danger)
+COLOR_BTN_PRIMARY: str = "#b2dfdb"   # teal 100 — default button color
+COLOR_BTN_ADD: str = "#26a69a"       # teal 400 — add / create action buttons
+COLOR_BTN_SECONDARY: str = "#f5f5f5" # grey 100 — secondary buttons (back, cancel, resting)
+COLOR_BTN_DANGER: str = "#ff80ab"    # pink A100 — destructive / danger buttons
+COLOR_TIMER_BANNER: str = "#4db6ac"  # teal 300 — timer restore banner
+COLOR_DIFF_UP: str = "#26a69a"       # teal 400 — set value improved vs previous
+COLOR_DIFF_DOWN: str = "#ff4081"     # pink A200 — set value dropped vs previous
+COLOR_ERROR: str = "#ff4081"         # pink A200 — inline validation error text

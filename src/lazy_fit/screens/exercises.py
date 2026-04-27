@@ -8,7 +8,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.db.models import get_exercises_by_muscle_group, MuscleGroup, Exercise
-from lazy_fit.ui_constants import COLOR_BTN_RESTING
+from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_SECONDARY
 
 
 def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
@@ -47,5 +47,5 @@ def _add_exercise_row(app: toga.App, container: toga.Box, ex: Exercise) -> None:
         button_text = ex.name
 
     resting = ex.rest_days_remaining is not None and ex.rest_days_remaining > 0
-    style = Pack(margin=8, flex=1, background_color=COLOR_BTN_RESTING) if resting else Pack(margin=8, flex=1)
+    style = Pack(margin=8, flex=1, background_color=COLOR_BTN_SECONDARY) if resting else Pack(margin=8, flex=1, background_color=COLOR_BTN_PRIMARY)
     container.add(toga.Button(button_text, on_press=on_tap, style=style))

@@ -12,7 +12,7 @@ from toga.style.pack import COLUMN, ROW
 from lazy_fit.i18n import t, set_language
 from lazy_fit.db.connection import set_db_path, init_db
 from lazy_fit.db.models import get_setting
-from lazy_fit.ui_constants import COLOR_TIMER_BANNER, COLOR_BTN_BACK
+from lazy_fit.ui_constants import COLOR_TIMER_BANNER, COLOR_BTN_SECONDARY
 
 
 class LazyFitApp(toga.App):
@@ -149,7 +149,7 @@ class LazyFitApp(toga.App):
             back_btn = toga.Button(
                 f"‹ {t('back')}",
                 on_press=lambda w: back_fn() if back_fn else self.nav_pop(),
-                style=Pack(margin=4, background_color=COLOR_BTN_BACK),
+                style=Pack(margin=4, background_color=COLOR_BTN_SECONDARY),
             )
             nav_bar = toga.Box(
                 children=[back_btn],

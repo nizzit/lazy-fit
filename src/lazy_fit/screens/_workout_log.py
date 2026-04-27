@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import BTN_SET_W, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_SM, FONT_XS, SPACE_XS
+from lazy_fit.ui_constants import BTN_SET_W, COLOR_BTN_SECONDARY, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_SM, FONT_XS, SPACE_XS
 from lazy_fit.db.models import WorkoutSet, get_sets_for_date, get_prev_workout_values_for_exercise
 
 
@@ -113,7 +113,7 @@ def _add_set_button(
         screen = build_edit(app, ws, _get_equip(), _on_saved)
         app.nav_push(screen, t("edit_set"))
 
-    btn = toga.Button(base_label, on_press=on_press, style=Pack(width=BTN_SET_W))
+    btn = toga.Button(base_label, on_press=on_press, style=Pack(width=BTN_SET_W, background_color=COLOR_BTN_SECONDARY))
 
     children: list[toga.Widget] = [btn]
     if diff_text is not None:
