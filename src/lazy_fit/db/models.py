@@ -410,6 +410,41 @@ def delete_workout_by_date(date: str) -> None:
     conn.commit()
 
 
+def get_prev_workout_values_for_exercise(
+    exercise_id: int, before_date: str
+) -> list[int]:
+    """Return set values from the most recent workout before *before_date*.
+
+    Values are reps (for 'reps' exercises) or duration_sec (for 'time' exercises),
+    in set order. Empty list if no prior workout exists for *exercise_id*.
+    """
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT DISTINCT date FROM workout_set
+        WHERE exercise_id = ? AND date < ?
+        ORDER BY date DESC LIMIT 1
+        """,
+        (exercise_id, before_date),
+    ).fetchone()
+    if row is None:
+        return []
+    prev_date = row["date"]
+    rows = conn.execute(
+        """
+        SELECT reps, duration_sec FROM workout_set
+        WHERE exercise_id = ? AND date = ?
+        ORDER BY order_index, created_at
+        """,
+        (exercise_id, prev_date),
+    ).fetchall()
+    result: list[int] = []
+    for r in rows:
+        v = r["reps"] if r["reps"] is not None else r["duration_sec"]
+        result.append(v if v is not None else 0)
+    return result
+
+
 def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
     """Return the most recent equipment_id used for *exercise_id*, or None."""
     row = (
@@ -632,59 +667,42 @@ def get_last_exercise_today() -> Optional[Exercise]:
 def get_default_value_for_next_set(exercise_id: int, today: str) -> Optional[int]:
     """Return suggested value for the next set of *exercise_id* today.
 
-    Finds the most recent previous workout date (before *today*) for this exercise,
-    then returns the value at the same position as the next set to be logged today.
-    If the previous workout has fewer sets than needed, returns its last set's value.
+    Uses the most recent previous workout as the reference. Returns the value at
+    the same position as the next set to be logged today. When the previous
+    workout has fewer sets than needed, falls back to the last value logged today
+    (or the last set of the previous workout if nothing is logged yet).
     Returns None if no previous workout exists for this exercise.
     """
     conn = get_connection()
-    # How many sets already logged today for this exercise (= index of next set)
+    # How many sets already logged today (= index of next set)
     row = conn.execute(
         "SELECT COUNT(*) AS cnt FROM workout_set WHERE exercise_id = ? AND date = ?",
         (exercise_id, today),
     ).fetchone()
     set_index: int = row["cnt"] if row else 0
 
-    # Most recent previous workout date
-    row = conn.execute(
-        """SELECT DISTINCT date FROM workout_set
-           WHERE exercise_id = ? AND date < ?
-           ORDER BY date DESC LIMIT 1""",
-        (exercise_id, today),
-    ).fetchone()
-    if row is None:
-        return None
-    prev_date = row["date"]
-
-    # All sets from that date ordered by position
-    rows = conn.execute(
-        """SELECT reps, duration_sec FROM workout_set
-           WHERE exercise_id = ? AND date = ?
-           ORDER BY order_index, created_at""",
-        (exercise_id, prev_date),
-    ).fetchall()
-    if not rows:
+    prev_values = get_prev_workout_values_for_exercise(exercise_id, today)
+    if not prev_values:
         return None
 
-    if set_index < len(rows):
-        # Previous workout has a set at this position — use it
-        r = rows[set_index]
-        return r["reps"] if r["reps"] is not None else r["duration_sec"]
+    if set_index < len(prev_values):
+        return prev_values[set_index]
 
     # Previous workout has fewer sets — fall back to last value logged today
     last_today = conn.execute(
-        """SELECT reps, duration_sec FROM workout_set
-           WHERE exercise_id = ? AND date = ?
-           ORDER BY order_index DESC, created_at DESC
-           LIMIT 1""",
+        """
+        SELECT reps, duration_sec FROM workout_set
+        WHERE exercise_id = ? AND date = ?
+        ORDER BY order_index DESC, created_at DESC
+        LIMIT 1
+        """,
         (exercise_id, today),
     ).fetchone()
     if last_today is not None:
         return last_today["reps"] if last_today["reps"] is not None else last_today["duration_sec"]
 
-    # Nothing today yet — use last set from previous workout
-    r = rows[-1]
-    return r["reps"] if r["reps"] is not None else r["duration_sec"]
+    # Nothing today yet — use last set of previous workout
+    return prev_values[-1]
 
 
 # ---------------------------------------------------------------------------

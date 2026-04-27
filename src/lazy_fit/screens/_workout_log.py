@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Optional
 
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import BTN_SET_W, FONT_SM, SPACE_XS
-from lazy_fit.db.models import WorkoutSet, get_sets_for_date
+from lazy_fit.ui_constants import BTN_SET_W, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_SM, FONT_XS, SPACE_XS
+from lazy_fit.db.models import WorkoutSet, get_sets_for_date, get_prev_workout_values_for_exercise
 
 
 def populate_workout_log(
@@ -39,9 +39,9 @@ def populate_workout_log(
             seen[ws.exercise_id] = []
         seen[ws.exercise_id].append(ws)
 
-    # Build ordered list of (name, sets) pairs; exercise_name is stable per id.
-    groups: list[tuple[str, list[WorkoutSet]]] = [
-        (ex_sets[0].exercise_name, ex_sets) for ex_sets in seen.values()
+    # Build ordered list of (name, exercise_id, sets) pairs.
+    groups: list[tuple[str, int, list[WorkoutSet]]] = [
+        (ex_sets[0].exercise_name, ex_id, ex_sets) for ex_id, ex_sets in seen.items()
     ]
 
     if reverse:
@@ -49,7 +49,8 @@ def populate_workout_log(
 
     per_row = _buttons_per_row(app)
 
-    for ex_name, ex_sets in groups:
+    for ex_name, ex_id, ex_sets in groups:
+        prev_values = get_prev_workout_values_for_exercise(ex_id, date)
         box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=FONT_SM)))
         wrap = toga.Box(style=Pack(direction=COLUMN))
         current_row = toga.Box(style=Pack(direction=ROW))
@@ -57,23 +58,49 @@ def populate_workout_log(
             if i > 0 and i % per_row == 0:
                 wrap.add(current_row)
                 current_row = toga.Box(style=Pack(direction=ROW))
-            _add_set_button(current_row, ws, app, on_set_changed)
+            _add_set_button(current_row, ws, i, prev_values, app, on_set_changed)
         if current_row.children:
             wrap.add(current_row)
         box.add(wrap)
 
 
+def _set_diff(
+    current_val: int, set_index: int, prev_values: list[int]
+) -> tuple[Optional[str], Optional[str]]:
+    """Return (diff_text, color) for a set button label.
+
+    Returns (None, None) when there is no previous set at *set_index*
+    (current workout has more sets than the previous one).
+    """
+    if set_index >= len(prev_values):
+        return None, None
+    diff = current_val - prev_values[set_index]
+    if diff > 0:
+        return f"+{diff}", COLOR_DIFF_UP
+    if diff < 0:
+        return str(diff), COLOR_DIFF_DOWN
+    return "=", None
+
+
 def _add_set_button(
     container: toga.Box,
     ws: WorkoutSet,
+    set_index: int,
+    prev_values: list[int],
     app: toga.App,
     on_set_changed: Callable[[], None] | None = None,
 ) -> None:
+    from lazy_fit.ui_constants import FONT_XS
+
     if ws.exercise_type == "reps":
-        label = str(ws.reps or 0)
+        current_val = ws.reps or 0
+        base_label = str(current_val)
     else:
-        secs = ws.duration_sec or 0
-        label = f"{secs // 60:02d}:{secs % 60:02d}"
+        current_val = ws.duration_sec or 0
+        secs = current_val
+        base_label = f"{secs // 60:02d}:{secs % 60:02d}"
+
+    diff_text, diff_color = _set_diff(current_val, set_index, prev_values)
 
     def on_press(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
         from lazy_fit.screens.edit_set import build as build_edit
@@ -86,7 +113,21 @@ def _add_set_button(
         screen = build_edit(app, ws, _get_equip(), _on_saved)
         app.nav_push(screen, t("edit_set"))
 
-    container.add(toga.Button(label, on_press=on_press, style=Pack(margin=SPACE_XS, width=BTN_SET_W)))
+    btn = toga.Button(base_label, on_press=on_press, style=Pack(width=BTN_SET_W))
+
+    children: list[toga.Widget] = [btn]
+    if diff_text is not None:
+        diff_style = Pack(
+            width=BTN_SET_W,
+            font_size=FONT_XS,
+            text_align="center",
+            **({"color": diff_color} if diff_color else {}),
+        )
+        children.append(toga.Label(diff_text, style=diff_style))
+
+    container.add(
+        toga.Box(children=children, style=Pack(direction=COLUMN, margin=SPACE_XS))
+    )
 
 
 def _buttons_per_row(app: toga.App, slot_width: int = 72) -> int:

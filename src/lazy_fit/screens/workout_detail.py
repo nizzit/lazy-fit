@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FONT_MD, SPACE_SM, SPACE_XS, COLOR_BTN_DELETE
+from lazy_fit.ui_constants import COLOR_BTN_DELETE, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_MD, SPACE_SM, SPACE_XS
 from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
@@ -17,6 +17,7 @@ from lazy_fit.db.models import (
     update_workout_set,
     delete_workout_set,
     delete_workout_by_date,
+    get_prev_workout_values_for_exercise,
 )
 
 
@@ -84,25 +85,47 @@ def _populate(
 
     for ex_name, ex_sets in groups.items():
         box.add(toga.Label(ex_name, style=Pack(margin=SPACE_SM, font_size=FONT_MD)))
-        for ws in ex_sets:
-            _add_set_row(box, ws, equipment_list, app, refresh_fn)
+        prev_values = get_prev_workout_values_for_exercise(ex_sets[0].exercise_id, date)
+        for i, ws in enumerate(ex_sets):
+            _add_set_row(box, ws, i, prev_values, equipment_list, app, refresh_fn)
 
 
 def _add_set_row(
     container: toga.Box,
     ws: WorkoutSet,
+    set_index: int,
+    prev_values: list[int],
     equipment_list: list,
     app: toga.App,
     refresh_fn: object,
 ) -> None:
     if ws.exercise_type == "reps":
+        current_val = ws.reps or 0
         value_text = t("set_reps_label").format(reps=ws.reps)
     else:
-        secs = ws.duration_sec or 0
+        current_val = ws.duration_sec or 0
+        secs = current_val
         value_text = t("set_time_label").format(mm=f"{secs // 60:02d}", ss=f"{secs % 60:02d}")
 
     if ws.equipment_name:
         value_text += f"  [{ws.equipment_name}]"
+
+    # Diff vs previous workout
+    label_color: Optional[str] = None
+    if set_index < len(prev_values):
+        diff = current_val - prev_values[set_index]
+        if diff > 0:
+            value_text += f"  +{diff}"
+            label_color = COLOR_DIFF_UP
+        elif diff < 0:
+            value_text += f"  {diff}"
+            label_color = COLOR_DIFF_DOWN
+        else:
+            value_text += "  ="
+
+    label_style = Pack(flex=1, margin=SPACE_XS)
+    if label_color is not None:
+        label_style = Pack(flex=1, margin=SPACE_XS, color=label_color)
 
     async def on_delete(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
         result = await app.dialog(
@@ -121,7 +144,7 @@ def _add_set_row(
 
     row = toga.Box(
         children=[
-            toga.Label(value_text, style=Pack(flex=1, margin=SPACE_XS)),
+            toga.Label(value_text, style=label_style),
             toga.Button(t("edit_set"), on_press=on_edit, style=Pack(margin=SPACE_XS)),
             toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_XS, background_color=COLOR_BTN_DELETE)),
         ],
