@@ -37,7 +37,7 @@ def build(app: toga.App) -> toga.Box:
 def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
     def on_tap(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
         from lazy_fit.screens.exercises import build as build_ex
-        app.nav_push(build_ex(app, mg), mg.name)
+        app.nav_push(build_ex(app, mg), mg.name, refresh_fn=lambda: build_ex(app, mg))
 
     # Button label: name + weekly progress [+ rest days if resting]
     if mg.weekly_sets is not None and mg.weekly_sets > 0:

@@ -38,7 +38,7 @@ class LazyFitApp(toga.App):
         # Each entry: (content_widget, title_str, optional_back_fn, show_back)
         # optional_back_fn overrides the default nav_pop for that screen.
         # show_back=False hides the back button entirely.
-        self._nav_stack: list[tuple[toga.Widget, str, Optional[Callable], bool]] = []
+        self._nav_stack: list[tuple[toga.Widget, str, Optional[Callable], bool, Optional[Callable[[], toga.Widget]]]] = []
 
         # ------------------------------------------------------------------ main window
         self.main_window = toga.MainWindow(title=t("app_name"))
@@ -47,7 +47,7 @@ class LazyFitApp(toga.App):
         from lazy_fit.screens.home import build as build_home
 
         home = build_home(self)
-        self._nav_stack = [(home, t("app_name"), None, True)]
+        self._nav_stack = [(home, t("app_name"), None, True, None)]
         self._render_current()
 
         self.main_window.show()
@@ -60,9 +60,15 @@ class LazyFitApp(toga.App):
         title: str,
         back_fn: Optional[Callable] = None,
         show_back: bool = True,
+        refresh_fn: Optional[Callable[[], toga.Widget]] = None,
     ) -> None:
-        """Push a new screen onto the navigation stack."""
-        self._nav_stack.append((widget, title, back_fn, show_back))
+        """Push a new screen onto the navigation stack.
+
+        refresh_fn, if provided, is called whenever the screen becomes the
+        top of the stack again (e.g. after a child screen is popped) so the
+        widget is always rebuilt with fresh data.
+        """
+        self._nav_stack.append((widget, title, back_fn, show_back, refresh_fn))
         self._render_current()
 
     def nav_pop(self) -> None:
@@ -72,13 +78,18 @@ class LazyFitApp(toga.App):
             if len(self._nav_stack) == 1:
                 from lazy_fit.screens.home import build as build_home
 
-                self._nav_stack[0] = (build_home(self), t("app_name"), None, True)
+                self._nav_stack[0] = (build_home(self), t("app_name"), None, True, None)
+            else:
+                # Rebuild the now-visible screen if it registered a refresh_fn.
+                content, title, back_fn, show_back, refresh_fn = self._nav_stack[-1]
+                if refresh_fn is not None:
+                    self._nav_stack[-1] = (refresh_fn(), title, back_fn, show_back, refresh_fn)
             self._render_current()
 
     def nav_replace_root(self, widget: toga.Widget, title: str) -> None:
         """Replace the entire stack with a single new root screen."""
         self.cancel_active_timer()
-        self._nav_stack = [(widget, title, None, True)]
+        self._nav_stack = [(widget, title, None, True, None)]
         self._render_current()
 
     def restore_timer(self) -> None:
@@ -95,6 +106,7 @@ class LazyFitApp(toga.App):
                 at["screen_title"],
                 at["minimize_fn"],
                 at["show_back"],
+                None,
             )
         )
         self._render_current()
@@ -112,7 +124,7 @@ class LazyFitApp(toga.App):
 
     def _render_current(self) -> None:
         """Render the top-of-stack screen inside the main window."""
-        content, title, back_fn, show_back = self._nav_stack[-1]
+        content, title, back_fn, show_back, _refresh_fn = self._nav_stack[-1]
         self.main_window.title = title
 
         children: list[toga.Widget] = []
