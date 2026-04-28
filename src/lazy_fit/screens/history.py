@@ -10,8 +10,8 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import COLOR_BTN_DANGER, FONT_MD, SPACE_SM
-from lazy_fit.db.models import get_workout_dates, delete_workout_by_date
+from lazy_fit.ui_constants import COLOR_BTN_DANGER, FONT_MD, FONT_SM, SPACE_SM
+from lazy_fit.db.models import get_workout_dates, delete_workout_by_date, get_muscle_group_names_for_date
 from lazy_fit.screens._workout_log import populate_workout_log
 
 _BATCH_SIZE = 5
@@ -85,10 +85,23 @@ def _add_date_section(
             delete_workout_by_date(date)
             on_changed()  # type: ignore[operator]
 
+    muscle_names = get_muscle_group_names_for_date(date)
+    muscle_label = ", ".join(muscle_names) if muscle_names else ""
+
+    header_col = toga.Box(
+        children=[
+            toga.Label(display_date, style=Pack(font_size=FONT_MD, margin_bottom=2)),
+            *([
+                toga.Label(muscle_label, style=Pack(font_size=FONT_SM, color="#757575"))
+            ] if muscle_label else []),
+        ],
+        style=Pack(direction=COLUMN, flex=1, margin=SPACE_SM),
+    )
+
     container.add(
         toga.Box(
             children=[
-                toga.Label(display_date, style=Pack(flex=1, font_size=FONT_MD, margin=SPACE_SM)),
+                header_col,
                 toga.Button(
                     t("delete_workout"),
                     on_press=on_delete_workout,

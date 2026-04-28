@@ -350,6 +350,27 @@ def get_workout_dates() -> list[str]:
     return [r["date"] for r in rows]
 
 
+def get_muscle_group_names_for_date(date: str) -> list[str]:
+    """Return distinct muscle group names trained on *date*, sorted alphabetically."""
+    rows = (
+        get_connection()
+        .execute(
+            """
+            SELECT DISTINCT mg.name
+            FROM workout_set ws
+            JOIN exercise e ON e.id = ws.exercise_id
+            JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
+            JOIN muscle_group mg ON mg.id = emg.muscle_group_id
+            WHERE ws.date = ?
+            ORDER BY mg.name
+            """,
+            (date,),
+        )
+        .fetchall()
+    )
+    return [r["name"] for r in rows]
+
+
 def create_workout_set(
     date: str,
     exercise_id: int,
