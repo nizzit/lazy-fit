@@ -262,6 +262,13 @@ def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
             if remaining_values:
                 ex.rest_days_remaining = max(remaining_values)
 
+    def _sort_key(ex: Exercise) -> tuple:
+        resting = ex.rest_days_remaining is not None and ex.rest_days_remaining > 0
+        if resting:
+            return (1, ex.rest_days_remaining, ex.name)
+        return (0, 0, ex.name)
+
+    exercises.sort(key=_sort_key)
     return exercises
 
 
