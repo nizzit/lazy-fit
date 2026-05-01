@@ -52,6 +52,6 @@ def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
     else:
         button_text = f"{mg.name} ({progress})"
 
-    resting = mg.rest_days_remaining is not None and mg.rest_days_remaining > 0
+    resting = (mg.rest_days_remaining is not None and mg.rest_days_remaining > 0) or mg.weekly_limit_reached
     style = Pack(margin=8, flex=1, background_color=COLOR_BTN_SECONDARY) if resting else Pack(margin=8, flex=1, background_color=COLOR_BTN_PRIMARY)
     container.add(toga.Button(button_text, on_press=on_tap, style=style))

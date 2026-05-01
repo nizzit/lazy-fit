@@ -24,6 +24,7 @@ class MuscleGroup:
     completed_sets: int = 0
     rest_days_remaining: Optional[int] = None  # computed: days left in rest
     trained_today: bool = False
+    weekly_limit_reached: bool = False  # computed: completed_sets >= weekly_sets
 
 
 @dataclass
@@ -637,6 +638,12 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
                 rest_remaining = remaining
         # trained today but limit not reached → not resting yet
 
+        weekly_limit = r["weekly_sets"]
+        weekly_limit_reached = (
+            weekly_limit is not None
+            and weekly_limit > 0
+            and r["completed_sets"] >= weekly_limit
+        )
         mg = MuscleGroup(
             id=r["id"],
             name=r["name"],
@@ -645,6 +652,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
             completed_sets=r["completed_sets"],
             rest_days_remaining=rest_remaining,
             trained_today=trained_today and not limit_reached,
+            weekly_limit_reached=weekly_limit_reached,
         )
         muscle_groups.append(mg)
 

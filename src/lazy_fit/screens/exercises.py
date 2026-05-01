@@ -24,7 +24,7 @@ def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
         )
     else:
         for ex in exercises:
-            _add_exercise_row(app, scroll_content, ex)
+            _add_exercise_row(app, scroll_content, ex, muscle_group)
 
     scroll = toga.ScrollContainer(content=scroll_content, style=Pack(flex=1))
 
@@ -35,7 +35,9 @@ def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
     return root
 
 
-def _add_exercise_row(app: toga.App, container: toga.Box, ex: Exercise) -> None:
+def _add_exercise_row(
+    app: toga.App, container: toga.Box, ex: Exercise, mg: MuscleGroup
+) -> None:
     def on_tap(widget: toga.Widget, ex: Exercise = ex) -> None:
         from lazy_fit.screens.log_set import build as build_log
         app.nav_push(build_log(app, ex), ex.name)
@@ -46,6 +48,9 @@ def _add_exercise_row(app: toga.App, container: toga.Box, ex: Exercise) -> None:
     else:
         button_text = ex.name
 
-    resting = ex.rest_days_remaining is not None and ex.rest_days_remaining > 0
+    resting = (
+        (ex.rest_days_remaining is not None and ex.rest_days_remaining > 0)
+        or mg.weekly_limit_reached
+    )
     style = Pack(margin=8, flex=1, background_color=COLOR_BTN_SECONDARY) if resting else Pack(margin=8, flex=1, background_color=COLOR_BTN_PRIMARY)
     container.add(toga.Button(button_text, on_press=on_tap, style=style))
