@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FORM_INPUT_W, COLOR_ERROR
+from lazy_fit.ui_constants import FORM_INPUT_W, COLOR_ERROR, themed_pack
 
 from lazy_fit.db.models import (
     Exercise,
@@ -81,7 +81,7 @@ def _show_form(
         style=Pack(width=FORM_INPUT_W, margin=4),
     )
 
-    error_label = toga.Label("", style=Pack(margin=4, color=COLOR_ERROR))
+    error_label = toga.Label("", style=themed_pack(margin=4, color=COLOR_ERROR()))
 
     def on_save(widget: toga.Widget) -> None:
         name = name_input.value.strip()

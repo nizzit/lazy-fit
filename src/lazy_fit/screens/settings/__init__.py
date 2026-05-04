@@ -8,7 +8,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t, set_language, get_language
 from lazy_fit.db.models import set_setting
-from lazy_fit.ui_constants import BTN_MENU_W, SPACE_SM, SPACE_LG, COLOR_BTN_PRIMARY
+from lazy_fit.ui_constants import BTN_MENU_W, SPACE_SM, SPACE_LG, COLOR_BTN_PRIMARY, themed_pack
 
 
 def build(app: toga.App) -> toga.Box:
@@ -53,19 +53,15 @@ def build(app: toga.App) -> toga.Box:
         app.nav_replace_root(build_home(app), t("app_name"))
         app.nav_push(build(app), t("settings"))
 
-    btn_style = Pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_PRIMARY)
+    btn_style = themed_pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_PRIMARY())
 
     return toga.Box(
         children=[
-            toga.Button(
-                t("manage_muscle_groups"), on_press=on_muscle_groups, style=btn_style
-            ),
+            toga.Button(t("manage_muscle_groups"), on_press=on_muscle_groups, style=btn_style),
             toga.Button(t("manage_equipment"), on_press=on_equipment, style=btn_style),
             toga.Button(t("manage_exercises"), on_press=on_exercises, style=btn_style),
             toga.Button(t("rest_timer"), on_press=on_rest_timer, style=btn_style),
-            toga.Button(
-                t("training_period"), on_press=on_training_period, style=btn_style
-            ),
+            toga.Button(t("training_period"), on_press=on_training_period, style=btn_style),
             toga.Button(t("data_management"), on_press=on_data, style=btn_style),
             toga.Button(t("lang_toggle"), on_press=on_lang_toggle, style=btn_style),
         ],

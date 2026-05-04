@@ -10,7 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import BTN_MENU_W, COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, SPACE_SM, SPACE_LG
+from lazy_fit.ui_constants import BTN_MENU_W, COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, SPACE_SM, SPACE_LG, themed_pack
 
 
 def build(app: toga.App) -> toga.Box:
@@ -136,8 +136,8 @@ def build(app: toga.App) -> toga.Box:
                 toga.InfoDialog(t("import_data"), t("import_success"))
             )
 
-    btn_style = Pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_PRIMARY)
-    reset_style = Pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_DANGER)
+    btn_style = themed_pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_PRIMARY())
+    reset_style = themed_pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_DANGER())
 
     return toga.Box(
         children=[

@@ -8,7 +8,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.db.models import get_exercises_by_muscle_group, MuscleGroup, Exercise
-from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_SECONDARY
+from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_SECONDARY, themed_pack
 
 
 def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
@@ -52,5 +52,5 @@ def _add_exercise_row(
         (ex.rest_days_remaining is not None and ex.rest_days_remaining > 0)
         or mg.weekly_limit_reached
     )
-    style = Pack(margin=8, flex=1, background_color=COLOR_BTN_SECONDARY) if resting else Pack(margin=8, flex=1, background_color=COLOR_BTN_PRIMARY)
+    style = themed_pack(margin=8, flex=1, background_color=COLOR_BTN_SECONDARY()) if resting else themed_pack(margin=8, flex=1, background_color=COLOR_BTN_PRIMARY())
     container.add(toga.Button(button_text, on_press=on_tap, style=style))

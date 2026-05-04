@@ -17,7 +17,7 @@ from lazy_fit.android_api import (
     send_notification,
 )
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import BTN_TIMER_W, COLOR_BTN_PRIMARY, FONT_LG, FONT_XL
+from lazy_fit.ui_constants import BTN_TIMER_W, COLOR_BTN_PRIMARY, FONT_LG, FONT_XL, themed_pack
 
 _log = logging.getLogger("lazy_fit")
 
@@ -162,7 +162,7 @@ def build(
     stop_btn = toga.Button(
         stop_label,
         on_press=_stop_and_done,
-        style=Pack(margin=8, width=BTN_TIMER_W, background_color=COLOR_BTN_PRIMARY),
+        style=themed_pack(margin=8, width=BTN_TIMER_W, background_color=COLOR_BTN_PRIMARY()),
     )
 
     center_children: list[toga.Widget] = []

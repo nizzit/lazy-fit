@@ -9,7 +9,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD, COLOR_BTN_PRIMARY, COLOR_BTN_ADD, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER
+from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD, COLOR_BTN_PRIMARY, COLOR_BTN_ADD, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER, themed_pack
 
 
 def wrap_scroll(widget: toga.Widget) -> toga.Box:
@@ -39,7 +39,7 @@ def build_crud_screen(
     add_btn = toga.Button(
         f"+ {t('add')}",
         on_press=on_add,
-        style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_ADD),
+        style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_ADD()),
     )
 
     list_box = toga.Box(style=Pack(direction=COLUMN))
@@ -57,7 +57,7 @@ def build_crud_screen(
 def build_list_row(name: str, on_edit: Callable) -> toga.Box:
     return toga.Box(
         children=[
-            toga.Button(name, on_press=on_edit, style=Pack(flex=1, margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY)),
+            toga.Button(name, on_press=on_edit, style=themed_pack(flex=1, margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY())),
         ],
         style=Pack(direction=ROW, margin=SPACE_XS),
     )
@@ -84,12 +84,12 @@ def build_entity_form(
     on_delete: Optional[Callable] = None,
 ) -> toga.Box:
     action_buttons: list[toga.Widget] = [
-        toga.Button(t("save"), on_press=on_save, style=Pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY)),
-        toga.Button(t("cancel"), on_press=on_cancel, style=Pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_SECONDARY)),
+        toga.Button(t("save"), on_press=on_save, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY())),
+        toga.Button(t("cancel"), on_press=on_cancel, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_SECONDARY())),
     ]
     if on_delete is not None:
         action_buttons.append(
-            toga.Button(t("delete"), on_press=on_delete, style=Pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER))
+            toga.Button(t("delete"), on_press=on_delete, style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER()))
         )
     form_box = toga.Box(
         children=[

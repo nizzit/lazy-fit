@@ -15,7 +15,7 @@ from lazy_fit.db.models import (
     update_equipment,
     delete_equipment,
 )
-from lazy_fit.ui_constants import COLOR_ERROR
+from lazy_fit.ui_constants import COLOR_ERROR, themed_pack
 from lazy_fit.screens.settings._crud import (
     build_crud_screen,
     build_list_row,
@@ -43,7 +43,7 @@ def _show_form(app: toga.App, eq: Optional[Equipment], refresh_fn: object) -> No
         placeholder=t("name"),
         style=Pack(flex=1, margin=4),
     )
-    error_label = toga.Label("", style=Pack(margin=4, color=COLOR_ERROR))
+    error_label = toga.Label("", style=themed_pack(margin=4, color=COLOR_ERROR()))
 
     def on_save(widget: toga.Widget) -> None:
         name = name_input.value.strip()
