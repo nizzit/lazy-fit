@@ -88,7 +88,6 @@ class LazyFitApp(toga.App):
 
     def nav_replace_root(self, widget: toga.Widget, title: str) -> None:
         """Replace the entire stack with a single new root screen."""
-        self.cancel_active_timer()
         self._nav_stack = [(widget, title, None, True, None)]
         self._render_current()
 

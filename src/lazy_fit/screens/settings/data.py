@@ -55,6 +55,7 @@ def build(app: toga.App) -> toga.Box:
         from lazy_fit.db.models import reset_all_data
         from lazy_fit.screens.home import build as build_home
 
+        app.cancel_active_timer()
         reset_all_data()
         app.nav_replace_root(build_home(app), t("app_name"))
         await app.main_window.dialog(
@@ -98,6 +99,7 @@ def build(app: toga.App) -> toga.Box:
                 def _reload(_sender: object) -> None:
                     from lazy_fit.screens.home import build as build_home
 
+                    app.cancel_active_timer()  # type: ignore[union-attr]
                     app.nav_replace_root(build_home(app), t("app_name"))  # type: ignore[union-attr]
                     app.add_background_task(  # type: ignore[union-attr]
                         lambda _: app.main_window.dialog(  # type: ignore[union-attr]
@@ -131,6 +133,7 @@ def build(app: toga.App) -> toga.Box:
             import_all_data(data)
             from lazy_fit.screens.home import build as build_home
 
+            app.cancel_active_timer()
             app.nav_replace_root(build_home(app), t("app_name"))
             await app.main_window.dialog(
                 toga.InfoDialog(t("import_data"), t("import_success"))
