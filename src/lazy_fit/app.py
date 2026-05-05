@@ -128,30 +128,36 @@ class LazyFitApp(toga.App):
 
         children: list[toga.Widget] = []
 
-        # Show timer banner at the very top when a timer is running but not on screen.
         at = self.active_timer
-        if at is not None and content is not at["screen_widget"]:
-            banner_btn = toga.Button(
-                f"⏱ {at['banner_text']}",
-                on_press=lambda w: self.restore_timer(),
-                style=themed_pack(margin=4, width=120, background_color=COLOR_BTN_DANGER()),
-            )
-            at["banner_label"] = banner_btn
-            banner_row = toga.Box(
-                children=[banner_btn],
-                style=Pack(direction=COLUMN, align_items="center"),
-            )
-            children.append(banner_row)
-
+        has_banner = at is not None and content is not at["screen_widget"]
         can_go_back = len(self._nav_stack) > 1 and show_back
-        if can_go_back:
-            back_btn = toga.Button(
-                f"‹ {t('back')}",
-                on_press=lambda w: back_fn() if back_fn else self.nav_pop(),
-                style=themed_pack(margin=4, background_color=COLOR_BTN_SECONDARY()),
-            )
+
+        if has_banner or can_go_back:
+            # Layout: three equal flex=1 columns — [left | center | right]
+            # Back button goes in left col, banner in center col (always centred).
+            left_col = toga.Box(style=Pack(direction=ROW, flex=1))
+            center_col = toga.Box(style=Pack(direction=ROW, flex=1, align_items="center", justify_content="center"))
+            right_col = toga.Box(style=Pack(direction=ROW, flex=1))
+
+            if can_go_back:
+                back_btn = toga.Button(
+                    f"‹ {t('back')}",
+                    on_press=lambda w: back_fn() if back_fn else self.nav_pop(),
+                    style=themed_pack(margin=4, background_color=COLOR_BTN_SECONDARY()),
+                )
+                left_col.add(back_btn)
+
+            if has_banner:
+                banner_btn = toga.Button(
+                    f"⏱ {at['banner_text']}",
+                    on_press=lambda w: self.restore_timer(),
+                    style=themed_pack(margin=4, width=120, background_color=COLOR_BTN_DANGER()),
+                )
+                at["banner_label"] = banner_btn
+                center_col.add(banner_btn)
+
             nav_bar = toga.Box(
-                children=[back_btn],
+                children=[left_col, center_col, right_col],
                 style=Pack(direction=ROW, margin=4),
             )
             children.append(nav_bar)
