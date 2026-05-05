@@ -633,7 +633,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         elif last_trained and not trained_today and effective_rest > 0:
             # Trained on a previous day — normal rest countdown
             elapsed = (today - last_trained).days
-            remaining = effective_rest - elapsed
+            remaining = effective_rest - elapsed + 1
             if remaining > 0:
                 rest_remaining = remaining
         # trained today but limit not reached → not resting yet
