@@ -10,7 +10,7 @@ from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import FORM_INPUT_W, SPACE_MD, SPACE_SM, SPACE_XS, COLOR_BTN_PRIMARY, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER, themed_pack
-from lazy_fit.widgets import StepperInput
+from lazy_fit.widgets import StepperInput, ConfirmButton
 from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set, delete_workout_set
 from lazy_fit.screens.settings._crud import wrap_scroll
 
@@ -80,16 +80,14 @@ def build(
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    async def on_delete(widget: toga.Widget) -> None:
-        result = await app.dialog(toga.ConfirmDialog(t("delete"), t("confirm_delete_set")))
-        if result:
-            delete_workout_set(ws.id)
-            on_saved()
-            app.nav_pop()
+    def on_delete(widget: toga.Widget) -> None:
+        delete_workout_set(ws.id)
+        on_saved()
+        app.nav_pop()
 
     save_btn = toga.Button(t("save"), on_press=on_save, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY()))
     cancel_btn = toga.Button(t("cancel"), on_press=on_cancel, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_SECONDARY()))
-    delete_btn = toga.Button(t("delete"), on_press=on_delete, style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER()))
+    delete_btn = ConfirmButton(t("delete"), on_delete, app, margin=SPACE_SM, background_color=COLOR_BTN_DANGER())
 
     btn_row = toga.Box(
         children=[save_btn, cancel_btn, delete_btn],

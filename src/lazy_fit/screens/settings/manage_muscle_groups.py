@@ -123,18 +123,11 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    async def on_delete(widget: toga.Widget) -> None:
+    def on_delete(widget: toga.Widget) -> None:
         if mg:
-            result = await app.dialog(
-                toga.ConfirmDialog(
-                    t("delete"),
-                    t("confirm_delete_muscle_group").format(name=mg.name),
-                )
-            )
-            if result:
-                delete_muscle_group(mg.id)
-                refresh_fn()  # type: ignore[operator]
-                app.nav_pop()
+            delete_muscle_group(mg.id)
+            refresh_fn()  # type: ignore[operator]
+            app.nav_pop()
 
     fields: list[toga.Widget] = [
         build_form_field("name", name_input),
@@ -150,6 +143,7 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
         on_save,
         on_cancel,
         on_delete=on_delete if mg else None,
+        app=app,
     )
     title = t("edit") if mg else t("add")
     app.nav_push(form, f"{title} — {t('manage_muscle_groups')}")

@@ -8,7 +8,68 @@ import toga
 from toga.style import Pack
 from toga.style.pack import ROW
 
-from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, STEPPER_INPUT_W, themed_pack
+from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, COLOR_BTN_DANGER_ACTIVE, STEPPER_INPUT_W, themed_pack
+
+
+class ConfirmButton(toga.Button):
+    """Button that requires a double-tap to execute a destructive action.
+
+    First tap: switches to confirm state (different text + danger-active colour).
+    Second tap within *timeout* seconds: calls *action(widget)*.
+    No second tap: reverts to idle after *timeout* seconds.
+    """
+
+    def __init__(
+        self,
+        text: str,
+        action: object,
+        app: toga.App,
+        timeout: float = 3.0,
+        **style_kwargs: object,
+    ) -> None:
+        self._idle_text = text
+        self._action = action
+        self._app = app
+        self._timeout = timeout
+        self._pending: list[bool] = [False]
+        self._idle_color = COLOR_BTN_DANGER()
+        self._active_color = COLOR_BTN_DANGER_ACTIVE()
+        super().__init__(
+            text,
+            on_press=self._handle_press,
+            style=themed_pack(**style_kwargs),
+        )
+
+    def _handle_press(self, widget: toga.Widget) -> None:
+        if self._pending[0]:
+            # Second tap — execute action and reset
+            self._pending[0] = False
+            self._deactivate()
+            self._action(widget)  # type: ignore[operator]
+        else:
+            self._activate()
+
+    def _activate(self) -> None:
+        self._pending[0] = True
+        if self._active_color is not None:
+            self.style.background_color = self._active_color
+
+        async def _wait_and_reset(_sender: object) -> None:
+            import asyncio
+
+            await asyncio.sleep(self._timeout)
+            if self._pending[0]:
+                self._pending[0] = False
+                self._deactivate()
+
+        self._app.add_background_task(_wait_and_reset)
+
+    def _deactivate(self) -> None:
+        if self._idle_color is not None:
+            self.style.background_color = self._idle_color
+        elif self._active_color is not None:
+            # Reset to None (native) if no idle colour but active was set
+            self.style.background_color = None  # type: ignore[assignment]
 
 
 class StepperInput(toga.Box):

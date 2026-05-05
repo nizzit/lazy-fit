@@ -40,7 +40,8 @@ _PALETTE: dict[str, str] = {
     "btn_primary":   "#b2dfdb",  # teal 100
     "btn_add":       "#26a69a",  # teal 400
     "btn_secondary": "#f5f5f5",  # grey 100
-    "btn_danger":    "#ff80ab",  # pink A100
+    "btn_danger":        "#ff80ab",  # pink A100
+    "btn_danger_active": "#ff4081",  # pink A200
     "diff_up":       "#26a69a",  # teal 400
     "diff_down":     "#ff4081",  # pink A200
     "error":         "#ff4081",  # pink A200
@@ -56,7 +57,8 @@ def theme_color(key: str) -> Optional[str]:
 def COLOR_BTN_PRIMARY() -> Optional[str]:   return theme_color("btn_primary")   # noqa: N802
 def COLOR_BTN_ADD() -> Optional[str]:       return theme_color("btn_add")        # noqa: N802
 def COLOR_BTN_SECONDARY() -> Optional[str]: return theme_color("btn_secondary")  # noqa: N802
-def COLOR_BTN_DANGER() -> Optional[str]:    return theme_color("btn_danger")     # noqa: N802
+def COLOR_BTN_DANGER() -> Optional[str]:        return theme_color("btn_danger")         # noqa: N802
+def COLOR_BTN_DANGER_ACTIVE() -> Optional[str]:  return theme_color("btn_danger_active")  # noqa: N802
 def COLOR_DIFF_UP() -> Optional[str]:       return theme_color("diff_up")        # noqa: N802
 def COLOR_DIFF_DOWN() -> Optional[str]:     return theme_color("diff_down")      # noqa: N802
 def COLOR_ERROR() -> Optional[str]:         return theme_color("error")          # noqa: N802

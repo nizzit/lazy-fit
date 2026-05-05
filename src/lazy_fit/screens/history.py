@@ -11,6 +11,7 @@ from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import COLOR_BTN_DANGER, FONT_MD, FONT_SM, SPACE_SM, themed_pack
+from lazy_fit.widgets import ConfirmButton
 from lazy_fit.db.models import get_workout_dates, delete_workout_by_date, get_muscle_group_names_for_date
 from lazy_fit.screens._workout_log import populate_workout_log
 
@@ -74,16 +75,9 @@ def _add_date_section(
         display_date = datetime.strptime(date, "%Y-%m-%d").strftime("%d-%m-%Y")
     except ValueError:
         display_date = date
-    async def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
-        result = await app.dialog(
-            toga.ConfirmDialog(
-                t("delete_workout"),
-                t("confirm_delete_workout").format(date=date),
-            )
-        )
-        if result:
-            delete_workout_by_date(date)
-            on_changed()  # type: ignore[operator]
+    def on_delete_workout(widget: toga.Widget, date: str = date) -> None:
+        delete_workout_by_date(date)
+        on_changed()  # type: ignore[operator]
 
     muscle_names = get_muscle_group_names_for_date(date)
     muscle_label = ", ".join(muscle_names) if muscle_names else ""
@@ -102,10 +96,12 @@ def _add_date_section(
         toga.Box(
             children=[
                 header_col,
-                toga.Button(
+                ConfirmButton(
                     t("delete_workout"),
-                    on_press=on_delete_workout,
-                    style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER()),
+                    on_delete_workout,
+                    app,
+                    margin=SPACE_SM,
+                    background_color=COLOR_BTN_DANGER(),
                 ),
             ],
             style=Pack(direction=ROW),

@@ -11,6 +11,7 @@ from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import BTN_MENU_W, COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, SPACE_SM, SPACE_LG, themed_pack
+from lazy_fit.widgets import ConfirmButton
 
 
 def build(app: toga.App) -> toga.Box:
@@ -45,22 +46,20 @@ def build(app: toga.App) -> toga.Box:
                 toga.InfoDialog(t("export_data"), t("export_success"))
             )
 
-    async def on_reset(widget: toga.Widget) -> None:
-        confirmed = await app.main_window.dialog(
-            toga.ConfirmDialog(t("reset_data"), t("reset_confirm"))
-        )
-        if not confirmed:
-            return
-
+    def on_reset(widget: toga.Widget) -> None:
         from lazy_fit.db.models import reset_all_data
         from lazy_fit.screens.home import build as build_home
 
         app.cancel_active_timer()
         reset_all_data()
         app.nav_replace_root(build_home(app), t("app_name"))
-        await app.main_window.dialog(
-            toga.InfoDialog(t("reset_data"), t("reset_success"))
-        )
+
+        async def _show_success(_sender: object) -> None:
+            await app.main_window.dialog(
+                toga.InfoDialog(t("reset_data"), t("reset_success"))
+            )
+
+        app.add_background_task(_show_success)
 
     async def on_import(widget: toga.Widget) -> None:
         confirmed = await app.main_window.dialog(
@@ -140,13 +139,19 @@ def build(app: toga.App) -> toga.Box:
             )
 
     btn_style = themed_pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_PRIMARY())
-    reset_style = themed_pack(margin=SPACE_SM, width=BTN_MENU_W, background_color=COLOR_BTN_DANGER())
 
     return toga.Box(
         children=[
             toga.Button(t("export_data"), on_press=on_export, style=btn_style),
             toga.Button(t("import_data"), on_press=on_import, style=btn_style),
-            toga.Button(t("reset_data"), on_press=on_reset, style=reset_style),
+            ConfirmButton(
+                t("reset_data"),
+                on_reset,
+                app,
+                margin=SPACE_SM,
+                width=BTN_MENU_W,
+                background_color=COLOR_BTN_DANGER(),
+            ),
         ],
         style=Pack(direction=COLUMN, align_items="center", margin=SPACE_LG),
     )

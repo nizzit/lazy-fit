@@ -10,6 +10,7 @@ from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_MD, SPACE_SM, SPACE_XS, themed_pack
+from lazy_fit.widgets import ConfirmButton
 from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
@@ -35,21 +36,16 @@ def build(app: toga.App, date: str) -> toga.Box:
             box.remove(child)
         _populate(box, date, equipment_list, app, _refresh)
 
-    async def on_delete_workout(widget: toga.Widget) -> None:
-        result = await app.dialog(
-            toga.ConfirmDialog(
-                t("delete_workout"),
-                t("confirm_delete_workout").format(date=date),
-            )
-        )
-        if result:
-            delete_workout_by_date(date)
-            app.nav_pop()
+    def on_delete_workout(widget: toga.Widget) -> None:
+        delete_workout_by_date(date)
+        app.nav_pop()
 
-    delete_btn = toga.Button(
+    delete_btn = ConfirmButton(
         t("delete_workout"),
-        on_press=on_delete_workout,
-        style=themed_pack(margin=8, background_color=COLOR_BTN_DANGER()),
+        on_delete_workout,
+        app,
+        margin=8,
+        background_color=COLOR_BTN_DANGER(),
     )
 
     content_box = toga.Box(style=Pack(direction=COLUMN))
@@ -127,13 +123,9 @@ def _add_set_row(
     if label_color is not None:
         label_style = Pack(flex=1, margin=SPACE_XS, color=label_color)
 
-    async def on_delete(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
-        result = await app.dialog(
-            toga.ConfirmDialog(t("delete"), t("confirm_delete_set"))
-        )
-        if result:
-            delete_workout_set(ws.id)
-            refresh_fn()
+    def on_delete(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
+        delete_workout_set(ws.id)
+        refresh_fn()  # type: ignore[operator]
 
     def on_edit(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
         from lazy_fit.screens.edit_set import build as build_edit
@@ -146,7 +138,7 @@ def _add_set_row(
         children=[
             toga.Label(value_text, style=label_style),
             toga.Button(t("edit_set"), on_press=on_edit, style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY())),
-            toga.Button(t("delete"), on_press=on_delete, style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_DANGER())),
+            ConfirmButton(t("delete"), on_delete, app, margin=SPACE_XS, background_color=COLOR_BTN_DANGER()),
         ],
         style=Pack(direction=ROW, margin=SPACE_XS),
     )

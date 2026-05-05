@@ -107,18 +107,11 @@ def _show_form(
     def on_cancel(widget: toga.Widget) -> None:
         app.nav_pop()
 
-    async def on_delete(widget: toga.Widget) -> None:
+    def on_delete(widget: toga.Widget) -> None:
         if ex:
-            result = await app.dialog(
-                toga.ConfirmDialog(
-                    t("delete"),
-                    t("confirm_delete_exercise").format(name=ex.name),
-                )
-            )
-            if result:
-                delete_exercise(ex.id)
-                refresh_fn()  # type: ignore[operator]
-                app.nav_pop()
+            delete_exercise(ex.id)
+            refresh_fn()  # type: ignore[operator]
+            app.nav_pop()
 
     mg_label = toga.Label(t("muscle_group"), style=Pack(flex=1, margin=4))
     mg_row = toga.Box(
@@ -136,6 +129,7 @@ def _show_form(
         on_save,
         on_cancel,
         on_delete=on_delete if ex else None,
+        app=app,
     )
     title = t("edit") if ex else t("add")
     app.nav_push(form, f"{title} — {t('manage_exercises')}")

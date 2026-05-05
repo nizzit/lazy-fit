@@ -10,6 +10,7 @@ from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import SPACE_XS, SPACE_SM, SPACE_MD, COLOR_BTN_PRIMARY, COLOR_BTN_ADD, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER, themed_pack
+from lazy_fit.widgets import ConfirmButton
 
 
 def wrap_scroll(widget: toga.Widget) -> toga.Box:
@@ -82,15 +83,27 @@ def build_entity_form(
     on_save: Callable,
     on_cancel: Callable,
     on_delete: Optional[Callable] = None,
+    app: Optional[toga.App] = None,
 ) -> toga.Box:
     action_buttons: list[toga.Widget] = [
         toga.Button(t("save"), on_press=on_save, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY())),
         toga.Button(t("cancel"), on_press=on_cancel, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_SECONDARY())),
     ]
     if on_delete is not None:
-        action_buttons.append(
-            toga.Button(t("delete"), on_press=on_delete, style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER()))
-        )
+        if app is not None:
+            action_buttons.append(
+                ConfirmButton(
+                    t("delete"),
+                    on_delete,
+                    app,
+                    margin=SPACE_SM,
+                    background_color=COLOR_BTN_DANGER(),
+                )
+            )
+        else:
+            action_buttons.append(
+                toga.Button(t("delete"), on_press=on_delete, style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_DANGER()))
+            )
     form_box = toga.Box(
         children=[
             *fields,
