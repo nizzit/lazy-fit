@@ -2,6 +2,7 @@ __pycache__/
 .gradle
 .pi
 .venv
+.tasks
 *.egg-info
 *.log
 *.py[oc]
