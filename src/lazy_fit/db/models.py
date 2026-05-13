@@ -536,6 +536,27 @@ def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
     return row["equipment_id"]
 
 
+def get_last_heart_rates_for_exercise(
+    exercise_id: int,
+) -> tuple[Optional[int], Optional[int]]:
+    """Return (avg_hr, max_hr) from the most recent cardio workout_set for *exercise_id*.
+
+    Returns (None, None) if no previous workout exists or if both values are NULL.
+    """
+    row = get_connection().execute(
+        """
+        SELECT avg_hr, max_hr FROM workout_set
+        WHERE exercise_id = ? AND (avg_hr IS NOT NULL OR max_hr IS NOT NULL)
+        ORDER BY date DESC, order_index DESC, created_at DESC
+        LIMIT 1
+        """,
+        (exercise_id,),
+    ).fetchone()
+    if row is None:
+        return (None, None)
+    return (row["avg_hr"], row["max_hr"])
+
+
 # ---------------------------------------------------------------------------
 # App settings
 # ---------------------------------------------------------------------------

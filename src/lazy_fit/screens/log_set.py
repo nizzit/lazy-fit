@@ -19,6 +19,7 @@ from lazy_fit.db.models import (
     create_workout_set,
     get_default_value_for_next_set,
     get_last_equipment_for_exercise,
+    get_last_heart_rates_for_exercise,
 )
 
 
@@ -186,8 +187,9 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
             on_press=on_start_timer,
             style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY()),
         )
-        avg_hr_input = StepperInput(min=0, step=1, value=0, style=Pack(margin=4))
-        max_hr_input = StepperInput(min=0, step=1, value=0, style=Pack(margin=4))
+        prev_avg_hr, prev_max_hr = get_last_heart_rates_for_exercise(exercise.id)
+        avg_hr_input = StepperInput(min=0, step=1, value=prev_avg_hr or 0, style=Pack(margin=4))
+        max_hr_input = StepperInput(min=0, step=1, value=prev_max_hr or 0, style=Pack(margin=4))
         avg_hr_ref[0] = avg_hr_input
         max_hr_ref[0] = max_hr_input
         form_children = [
