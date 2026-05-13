@@ -11,6 +11,7 @@ from toga.style.pack import COLUMN, ROW
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import COLOR_BTN_PRIMARY, COLOR_BTN_DANGER, COLOR_DIFF_DOWN, COLOR_DIFF_UP, FONT_MD, SPACE_SM, SPACE_XS, themed_pack
 from lazy_fit.widgets import ConfirmButton
+from lazy_fit.screens._workout_log import _fmt_duration
 from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
@@ -110,14 +111,24 @@ def _add_set_row(
     label_color: Optional[str] = None
     if set_index < len(prev_values):
         diff = current_val - prev_values[set_index]
-        if diff > 0:
-            value_text += f"  +{diff}"
-            label_color = COLOR_DIFF_UP()
-        elif diff < 0:
-            value_text += f"  {diff}"
-            label_color = COLOR_DIFF_DOWN()
+        if ws.exercise_type in ("time", "cardio"):
+            if diff > 0:
+                value_text += f"  +{_fmt_duration(diff)}"
+                label_color = COLOR_DIFF_UP()
+            elif diff < 0:
+                value_text += f"  -{_fmt_duration(diff)}"
+                label_color = COLOR_DIFF_DOWN()
+            else:
+                value_text += "  ="
         else:
-            value_text += "  ="
+            if diff > 0:
+                value_text += f"  +{diff}"
+                label_color = COLOR_DIFF_UP()
+            elif diff < 0:
+                value_text += f"  {diff}"
+                label_color = COLOR_DIFF_DOWN()
+            else:
+                value_text += "  ="
 
     label_style = Pack(flex=1, margin=SPACE_XS)
     if label_color is not None:

@@ -13,6 +13,12 @@ from lazy_fit.ui_constants import BTN_SET_W, COLOR_BTN_SECONDARY, COLOR_DIFF_DOW
 from lazy_fit.db.models import WorkoutSet, get_sets_for_date, get_prev_workout_values_for_exercise
 
 
+def _fmt_duration(seconds: int) -> str:
+    """Format *seconds* as MM:SS string."""
+    s = abs(seconds)
+    return f"{s // 60:02d}:{s % 60:02d}"
+
+
 def populate_workout_log(
     box: toga.Box,
     date: str,
@@ -65,16 +71,23 @@ def populate_workout_log(
 
 
 def _set_diff(
-    current_val: int, set_index: int, prev_values: list[int]
+    current_val: int, set_index: int, prev_values: list[int], exercise_type: str = "reps"
 ) -> tuple[Optional[str], Optional[str]]:
     """Return (diff_text, color) for a set button label.
 
     Returns (None, None) when there is no previous set at *set_index*
     (current workout has more sets than the previous one).
+    For time/cardio exercises the diff is formatted as MM:SS.
     """
     if set_index >= len(prev_values):
         return None, None
     diff = current_val - prev_values[set_index]
+    if exercise_type in ("time", "cardio"):
+        if diff > 0:
+            return f"+{_fmt_duration(diff)}", COLOR_DIFF_UP()
+        if diff < 0:
+            return f"-{_fmt_duration(diff)}", COLOR_DIFF_DOWN()
+        return "=", None
     if diff > 0:
         return f"+{diff}", COLOR_DIFF_UP()
     if diff < 0:
@@ -112,7 +125,7 @@ def _add_set_button(
         secs = current_val
         base_label = f"{secs // 60:02d}:{secs % 60:02d}"
 
-    diff_text, diff_color = _set_diff(current_val, set_index, prev_values)
+    diff_text, diff_color = _set_diff(current_val, set_index, prev_values, ws.exercise_type)
 
     def on_press(widget: toga.Widget, ws: WorkoutSet = ws) -> None:
         from lazy_fit.screens.edit_set import build as build_edit
@@ -132,12 +145,20 @@ def _add_set_button(
 
     children: list[toga.Widget] = [btn]
     if diff_text is not None:
-        diff_style = Pack(
-            width=BTN_SET_W,
-            font_size=FONT_XS,
-            text_align="center",
-            **({"color": diff_color} if diff_color else {}),
-        )
+        if ws.exercise_type == "cardio":
+            diff_style = Pack(
+                flex=1,
+                font_size=FONT_XS,
+                text_align="center",
+                **({"color": diff_color} if diff_color else {}),
+            )
+        else:
+            diff_style = Pack(
+                width=BTN_SET_W,
+                font_size=FONT_XS,
+                text_align="center",
+                **({"color": diff_color} if diff_color else {}),
+            )
         children.append(toga.Label(diff_text, style=diff_style))
 
     if ws.exercise_type == "cardio":
