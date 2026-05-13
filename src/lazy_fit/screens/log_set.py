@@ -41,6 +41,8 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     value_input_ref: list[Optional[StepperInput]] = [None]
     equip_select_ref: list[Optional[toga.Selection]] = [None]
     history_box_ref: list[Optional[toga.Box]] = [None]
+    avg_hr_ref: list[Optional[StepperInput]] = [None]
+    max_hr_ref: list[Optional[StepperInput]] = [None]
 
     # ------------------------------------------------------------------ exercise timer
     def _on_exercise_timer_done(elapsed_secs: int) -> None:
@@ -105,11 +107,30 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
                         eq_id = eq.id
                         break
 
+        avg_hr: Optional[int] = None
+        max_hr: Optional[int] = None
+        if exercise.type == "cardio":
+            try:
+                raw_avg = avg_hr_ref[0].value if avg_hr_ref[0] else None
+                avg_hr = int(raw_avg) if raw_avg else None
+            except (ValueError, TypeError):
+                avg_hr = None
+            try:
+                raw_max = max_hr_ref[0].value if max_hr_ref[0] else None
+                max_hr = int(raw_max) if raw_max else None
+            except (ValueError, TypeError):
+                max_hr = None
+
         if exercise.type == "reps":
             create_workout_set(today, exercise.id, reps=int_value, equipment_id=eq_id)
-        else:
+        elif exercise.type == "time":
             create_workout_set(
                 today, exercise.id, duration_sec=int_value, equipment_id=eq_id
+            )
+        else:  # cardio
+            create_workout_set(
+                today, exercise.id, duration_sec=int_value, equipment_id=eq_id,
+                avg_hr=avg_hr, max_hr=max_hr,
             )
 
         if value_input_ref[0]:
@@ -152,13 +173,29 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     if exercise.type == "reps":
         form_children: list[toga.Widget] = [_field("reps", value_input)]
-    else:
+    elif exercise.type == "time":
         start_btn = toga.Button(
             t("timer_start"),
             on_press=on_start_timer,
             style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY()),
         )
         form_children = [start_btn, _field("duration", value_input)]
+    else:  # cardio
+        start_btn = toga.Button(
+            t("timer_start"),
+            on_press=on_start_timer,
+            style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY()),
+        )
+        avg_hr_input = StepperInput(min=0, step=1, value=0, style=Pack(margin=4))
+        max_hr_input = StepperInput(min=0, step=1, value=0, style=Pack(margin=4))
+        avg_hr_ref[0] = avg_hr_input
+        max_hr_ref[0] = max_hr_input
+        form_children = [
+            start_btn,
+            _field("duration", value_input),
+            _field("avg_hr", avg_hr_input),
+            _field("max_hr", max_hr_input),
+        ]
 
     equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
     _last_equip_name = next(

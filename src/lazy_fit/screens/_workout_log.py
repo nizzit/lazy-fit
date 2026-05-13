@@ -125,6 +125,19 @@ def _add_set_button(
         )
         children.append(toga.Label(diff_text, style=diff_style))
 
+    # Show heart rate info below the button for cardio sets
+    if ws.exercise_type == "cardio" and (ws.avg_hr is not None or ws.max_hr is not None):
+        if ws.avg_hr is not None and ws.max_hr is not None:
+            hr_text = f"{ws.avg_hr}/{ws.max_hr} bpm"
+        elif ws.avg_hr is not None:
+            hr_text = f"{ws.avg_hr} bpm"
+        else:
+            hr_text = f"{ws.max_hr} bpm"
+        children.append(toga.Label(
+            hr_text,
+            style=Pack(width=BTN_SET_W, font_size=FONT_XS, text_align="center"),
+        ))
+
     container.add(
         toga.Box(children=children, style=Pack(direction=COLUMN, margin=SPACE_XS))
     )

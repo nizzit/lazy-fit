@@ -73,8 +73,10 @@ def _build_exercises_section(
 
 
 def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> None:
+    # For built-in groups show the localised display name, not the internal db name
+    initial_name = mg.display_name if mg else ""
     name_input = toga.TextInput(
-        value=mg.name if mg else "",
+        value=initial_name,
         placeholder=t("name"),
         style=Pack(flex=1, margin=4),
     )
@@ -137,13 +139,17 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
     if mg:
         fields.append(_build_exercises_section(app, mg, refresh_fn))
 
+    # Task 8.1: hide delete button for built-in groups
+    is_builtin = mg.is_builtin if mg else False
+
     form = build_entity_form(
         fields,
         error_label,
         on_save,
         on_cancel,
-        on_delete=on_delete if mg else None,
+        on_delete=on_delete if (mg and not is_builtin) else None,
         app=app,
     )
     title = t("edit") if mg else t("add")
-    app.nav_push(form, f"{title} — {t('manage_muscle_groups')}")
+    # Task 8.2: use "groups" key instead of "manage_muscle_groups" with old text
+    app.nav_push(form, f"{title} — {t('groups')}")

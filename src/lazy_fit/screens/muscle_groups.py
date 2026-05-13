@@ -38,7 +38,7 @@ def build(app: toga.App) -> toga.Box:
 def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
     def on_tap(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
         from lazy_fit.screens.exercises import build as build_ex
-        app.nav_push(build_ex(app, mg), mg.name, refresh_fn=lambda: build_ex(app, mg))
+        app.nav_push(build_ex(app, mg), mg.display_name, refresh_fn=lambda: build_ex(app, mg))
 
     # Button label: name + weekly progress [+ rest days if resting]
     if mg.weekly_sets is not None and mg.weekly_sets > 0:
@@ -48,9 +48,9 @@ def _add_mg_row(app: toga.App, container: toga.Box, mg: MuscleGroup) -> None:
 
     if mg.rest_days_remaining is not None and mg.rest_days_remaining > 0:
         rest = t("rest_days_remaining").format(days=mg.rest_days_remaining)
-        button_text = f"{mg.name} ({progress}) — {rest}"
+        button_text = f"{mg.display_name} ({progress}) — {rest}"
     else:
-        button_text = f"{mg.name} ({progress})"
+        button_text = f"{mg.display_name} ({progress})"
 
     resting = (mg.rest_days_remaining is not None and mg.rest_days_remaining > 0) or mg.weekly_limit_reached
     style = themed_pack(margin=8, flex=1, background_color=COLOR_BTN_SECONDARY()) if resting else themed_pack(margin=8, flex=1, background_color=COLOR_BTN_PRIMARY())
