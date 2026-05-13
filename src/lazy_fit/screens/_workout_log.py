@@ -95,6 +95,18 @@ def _add_set_button(
     if ws.exercise_type == "reps":
         current_val = ws.reps or 0
         base_label = str(current_val)
+    elif ws.exercise_type == "cardio":
+        current_val = ws.duration_sec or 0
+        secs = current_val
+        time_str = f"{secs // 60:02d}:{secs % 60:02d}"
+        if ws.avg_hr is not None and ws.max_hr is not None:
+            base_label = f"{time_str} \u2665 {ws.avg_hr}/{ws.max_hr}"
+        elif ws.avg_hr is not None:
+            base_label = f"{time_str} \u2665 {ws.avg_hr}"
+        elif ws.max_hr is not None:
+            base_label = f"{time_str} \u2665 /{ws.max_hr}"
+        else:
+            base_label = time_str
     else:
         current_val = ws.duration_sec or 0
         secs = current_val
@@ -113,7 +125,10 @@ def _add_set_button(
         screen = build_edit(app, ws, _get_equip(), _on_saved)
         app.nav_push(screen, t("edit_set"))
 
-    btn = toga.Button(base_label, on_press=on_press, style=themed_pack(width=BTN_SET_W, background_color=COLOR_BTN_SECONDARY()))
+    if ws.exercise_type == "cardio":
+        btn = toga.Button(base_label, on_press=on_press, style=themed_pack(flex=1, background_color=COLOR_BTN_SECONDARY()))
+    else:
+        btn = toga.Button(base_label, on_press=on_press, style=themed_pack(width=BTN_SET_W, background_color=COLOR_BTN_SECONDARY()))
 
     children: list[toga.Widget] = [btn]
     if diff_text is not None:
@@ -125,22 +140,14 @@ def _add_set_button(
         )
         children.append(toga.Label(diff_text, style=diff_style))
 
-    # Show heart rate info below the button for cardio sets
-    if ws.exercise_type == "cardio" and (ws.avg_hr is not None or ws.max_hr is not None):
-        if ws.avg_hr is not None and ws.max_hr is not None:
-            hr_text = f"{ws.avg_hr}/{ws.max_hr} bpm"
-        elif ws.avg_hr is not None:
-            hr_text = f"{ws.avg_hr} bpm"
-        else:
-            hr_text = f"{ws.max_hr} bpm"
-        children.append(toga.Label(
-            hr_text,
-            style=Pack(width=BTN_SET_W, font_size=FONT_XS, text_align="center"),
-        ))
-
-    container.add(
-        toga.Box(children=children, style=Pack(direction=COLUMN, margin=SPACE_XS))
-    )
+    if ws.exercise_type == "cardio":
+        container.add(
+            toga.Box(children=children, style=Pack(direction=COLUMN, flex=1, margin=SPACE_XS))
+        )
+    else:
+        container.add(
+            toga.Box(children=children, style=Pack(direction=COLUMN, margin=SPACE_XS))
+        )
 
 
 def _buttons_per_row(app: toga.App, slot_width: int = 72) -> int:
