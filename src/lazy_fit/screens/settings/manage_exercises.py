@@ -47,6 +47,7 @@ def _show_form(
     ex: Optional[Exercise],
     refresh_fn: object,
     preselect_mg_ids: Optional[list[int]] = None,
+    refresh_on_cancel: bool = False,
 ) -> None:
     muscle_groups: list[MuscleGroup] = get_all_muscle_groups()
     cardio_group = get_cardio_group()
@@ -189,6 +190,8 @@ def _show_form(
         app.nav_pop()
 
     def on_cancel(widget: toga.Widget) -> None:
+        if refresh_on_cancel:
+            refresh_fn()  # type: ignore[operator]
         app.nav_pop()
 
     def on_delete(widget: toga.Widget) -> None:
