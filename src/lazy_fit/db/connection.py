@@ -139,8 +139,25 @@ def init_db() -> None:
         );
     """)
     conn.commit()
-    # Task 1.5 — insert built-in cardio group if not present
+    # Migrate built-in cardio group to canonical id = -1 (stable FK anchor).
+    # Uses FK-off + executescript (which auto-commits) so the rowid update is safe.
+    try:
+        row = conn.execute(
+            "SELECT id FROM muscle_group WHERE (is_builtin = 1 OR builtin_key = 'cardio_group_name') AND id != -1"
+        ).fetchone()
+        if row:
+            old_id = row["id"]
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.executescript(f"""
+                UPDATE exercise_muscle_group SET muscle_group_id = -1 WHERE muscle_group_id = {old_id};
+                UPDATE muscle_group SET id = -1 WHERE id = {old_id};
+            """)
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.commit()
+    except Exception:
+        conn.execute("PRAGMA foreign_keys = ON")
+    # Insert built-in cardio group with canonical id = -1 if not present
     conn.execute(
-        "INSERT OR IGNORE INTO muscle_group(name, is_builtin, builtin_key) VALUES ('cardio', 1, 'cardio_group_name')"
+        "INSERT OR IGNORE INTO muscle_group(id, name, is_builtin, builtin_key) VALUES (-1, 'cardio', 1, 'cardio_group_name')"
     )
     conn.commit()

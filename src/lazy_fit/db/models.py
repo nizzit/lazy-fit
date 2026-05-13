@@ -791,6 +791,75 @@ def get_default_value_for_next_set(exercise_id: int, today: str) -> Optional[int
 # Export / Import
 # ---------------------------------------------------------------------------
 
+# Canonical built-in group definitions: (fixed_id, builtin_key, canonical_name)
+# Negative IDs are used so they never collide with AUTOINCREMENT-assigned IDs
+# and remain stable across export/import cycles.
+_BUILTIN_GROUPS: list[tuple[int, str, str]] = [
+    (-1, "cardio_group_name", "cardio"),
+]
+
+
+def _migrate_builtin_id(conn: object, current_id: int, builtin_id: int, builtin_key: str) -> None:
+    """Reassign a built-in group's rowid to its canonical negative value.
+
+    Temporarily disables FK enforcement so the rowid can be changed and the
+    exercise_muscle_group references updated atomically.
+    """
+    import sqlite3 as _sqlite3
+
+    assert isinstance(conn, _sqlite3.Connection)
+    try:
+        conn.execute("PRAGMA foreign_keys = OFF")
+        conn.executescript(f"""
+            UPDATE exercise_muscle_group
+               SET muscle_group_id = {builtin_id}
+             WHERE muscle_group_id = {current_id};
+            UPDATE muscle_group
+               SET id = {builtin_id}, is_builtin = 1, builtin_key = '{builtin_key}'
+             WHERE id = {current_id};
+        """)
+        conn.execute("PRAGMA foreign_keys = ON")
+    except Exception:
+        conn.execute("PRAGMA foreign_keys = ON")
+        raise
+
+
+def ensure_builtin_groups() -> None:
+    """Ensure all built-in muscle groups exist with correct flags and canonical IDs.
+
+    Called after import or reset.  Handles four cases per built-in entry:
+    1. Row has correct builtin_key AND correct id  → just update is_builtin flag.
+    2. Row has correct builtin_key but wrong id    → migrate rowid to canonical value.
+    3. No builtin_key match; row matches canonical name (old backup) → migrate + set flags.
+    4. Neither exists                              → insert with explicit canonical id.
+    """
+    conn = get_connection()
+    for builtin_id, builtin_key, canonical_name in _BUILTIN_GROUPS:
+        row = conn.execute(
+            "SELECT id FROM muscle_group WHERE builtin_key = ?",
+            (builtin_key,),
+        ).fetchone()
+        if not row:
+            row = conn.execute(
+                "SELECT id FROM muscle_group WHERE name = ?",
+                (canonical_name,),
+            ).fetchone()
+        if row:
+            current_id = row["id"]
+            if current_id != builtin_id:
+                _migrate_builtin_id(conn, current_id, builtin_id, builtin_key)
+            else:
+                conn.execute(
+                    "UPDATE muscle_group SET is_builtin = 1, builtin_key = ? WHERE id = ?",
+                    (builtin_key, builtin_id),
+                )
+        else:
+            conn.execute(
+                "INSERT INTO muscle_group(id, name, is_builtin, builtin_key) VALUES (?, ?, 1, ?)",
+                (builtin_id, canonical_name, builtin_key),
+            )
+    conn.commit()
+
 
 def export_all_data() -> dict:
     """Serialize all user data to a plain dict suitable for JSON serialisation."""
@@ -798,7 +867,7 @@ def export_all_data() -> dict:
     muscle_groups = [
         dict(r)
         for r in conn.execute(
-            "SELECT id, name, weekly_sets FROM muscle_group ORDER BY id"
+            "SELECT id, name, weekly_sets, is_builtin, builtin_key FROM muscle_group ORDER BY id"
         ).fetchall()
     ]
     equipment = [
@@ -841,6 +910,8 @@ def export_all_data() -> dict:
 
 def reset_all_data() -> None:
     """Delete all user-generated data (sets, exercises, muscle groups, equipment)."""
+    from lazy_fit.db.connection import init_db
+
     conn = get_connection()
     conn.execute("DELETE FROM workout_set")
     conn.execute("DELETE FROM exercise_muscle_group")
@@ -848,6 +919,7 @@ def reset_all_data() -> None:
     conn.execute("DELETE FROM equipment")
     conn.execute("DELETE FROM muscle_group")
     conn.commit()
+    init_db()  # recreate built-in groups
 
 
 def import_all_data(data: dict) -> None:
@@ -863,8 +935,8 @@ def import_all_data(data: dict) -> None:
     # Insert in FK-safe order (parents first)
     for mg in data.get("muscle_groups", []):
         conn.execute(
-            "INSERT INTO muscle_group(id, name, weekly_sets) VALUES (?, ?, ?)",
-            (mg["id"], mg["name"], mg.get("weekly_sets")),
+            "INSERT INTO muscle_group(id, name, weekly_sets, is_builtin, builtin_key) VALUES (?, ?, ?, ?, ?)",
+            (mg["id"], mg["name"], mg.get("weekly_sets"), mg.get("is_builtin", 0), mg.get("builtin_key")),
         )
     for eq in data.get("equipment", []):
         conn.execute(
@@ -904,3 +976,4 @@ def import_all_data(data: dict) -> None:
             ),
         )
     conn.commit()
+    ensure_builtin_groups()  # restore / repair built-in group flags
