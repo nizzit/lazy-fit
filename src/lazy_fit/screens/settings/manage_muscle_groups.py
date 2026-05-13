@@ -38,7 +38,7 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
         def on_edit(widget: toga.Widget, mg: MuscleGroup = mg) -> None:
             _show_form(app, mg, refresh_fn)
 
-        box.add(build_list_row(mg.name, on_edit))
+        box.add(build_list_row(mg.display_name, on_edit))
 
 
 def _build_exercises_section(
