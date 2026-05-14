@@ -44,11 +44,33 @@ def _populate(box: toga.Box, app: toga.App, refresh_fn: object) -> None:
 def _build_exercises_section(
     app: toga.App, mg: MuscleGroup, refresh_fn: object
 ) -> toga.Box:
-    exercises = get_exercises_by_muscle_group(mg.id)
+    list_box_ref: list[Optional[toga.Box]] = [None]
+
+    def _refresh_exercises() -> None:
+        box = list_box_ref[0]
+        if box is None:
+            return
+        for child in list(box.children):
+            box.remove(child)
+        _populate_exercises(box)
+        refresh_fn()  # type: ignore[operator]
+
+    def _populate_exercises(box: toga.Box) -> None:
+        exercises = get_exercises_by_muscle_group(mg.id)
+        if not exercises:
+            box.add(toga.Label(t("no_exercises_in_group"), style=Pack(margin=4)))
+        else:
+            for ex in exercises:
+
+                def on_edit_exercise(widget: toga.Widget, ex: Exercise = ex) -> None:
+                    from lazy_fit.screens.settings.manage_exercises import _show_form as _show_exercise_form
+                    _show_exercise_form(app, ex, _refresh_exercises)
+
+                box.add(build_list_row(ex.name, on_edit_exercise))
 
     def on_add_exercise(widget: toga.Widget) -> None:
         from lazy_fit.screens.settings.manage_exercises import _show_form as _show_exercise_form
-        _show_exercise_form(app, None, refresh_fn, preselect_mg_ids=[mg.id])
+        _show_exercise_form(app, None, _refresh_exercises, preselect_mg_ids=[mg.id])
 
     section = toga.Box(style=Pack(direction=COLUMN, margin=SPACE_XS))
     section.add(toga.Label(t("exercises"), style=Pack(margin=SPACE_XS)))
@@ -58,16 +80,10 @@ def _build_exercises_section(
         style=themed_pack(margin=SPACE_SM, background_color=COLOR_BTN_ADD()),
     ))
 
-    if not exercises:
-        section.add(toga.Label(t("no_exercises_in_group"), style=Pack(margin=4)))
-    else:
-        for ex in exercises:
-
-            def on_edit_exercise(widget: toga.Widget, ex: Exercise = ex) -> None:
-                from lazy_fit.screens.settings.manage_exercises import _show_form as _show_exercise_form
-                _show_exercise_form(app, ex, refresh_fn)
-
-            section.add(build_list_row(ex.name, on_edit_exercise))
+    list_box = toga.Box(style=Pack(direction=COLUMN))
+    list_box_ref[0] = list_box
+    _populate_exercises(list_box)
+    section.add(list_box)
 
     return section
 
