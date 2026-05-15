@@ -296,13 +296,34 @@ def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
             if remaining_values:
                 ex.rest_days_remaining = max(remaining_values)
 
-    def _sort_key(ex: Exercise) -> tuple:
-        resting = ex.rest_days_remaining is not None and ex.rest_days_remaining > 0
-        if resting:
-            return (1, ex.rest_days_remaining, ex.name)
-        return (0, 0, ex.name)
+    # --- compute weekly progress per exercise (respect training period setting) ---
+    conn = get_connection()
 
-    exercises.sort(key=_sort_key)
+    week_start, week_end = get_week_range()
+
+    counts = {
+        r["exercise_id"]: r["cnt"]
+        for r in conn.execute(
+            """
+            SELECT exercise_id, COUNT(*) as cnt
+            FROM workout_set
+            WHERE date BETWEEN ? AND ?
+            GROUP BY exercise_id
+            """,
+            (week_start, week_end),
+        ).fetchall()
+    }
+
+    # map mg_id -> weekly_sets
+    mg_stats = get_muscle_groups_with_weekly_stats()
+    mg_weekly = {mg.id: mg.weekly_sets for mg in mg_stats if mg.weekly_sets}
+
+    for ex in exercises:
+        ex.completed_sets = counts.get(ex.id, 0)  # type: ignore[attr-defined]
+        # take max weekly target among linked groups
+        targets = [mg_weekly[mid] for mid in ex.muscle_group_ids if mid in mg_weekly]
+        ex.weekly_sets = max(targets) if targets else None  # type: ignore[attr-defined]
+
     return exercises
 
 

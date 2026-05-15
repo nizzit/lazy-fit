@@ -36,6 +36,38 @@ def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
 
     def _build_content() -> toga.Box:
         exercises: list[Exercise] = get_exercises_by_muscle_group(muscle_group.id)
+
+        def _status(ex: Exercise) -> int:
+            # 0 never, 1 active, 2 completed, 3 resting
+            if getattr(ex, "completed_sets", 0) == 0:
+                return 0
+            if (ex.rest_days_remaining is not None and ex.rest_days_remaining > 0):
+                return 3
+            if getattr(ex, "weekly_sets", None) is not None and getattr(ex, "completed_sets", 0) >= getattr(ex, "weekly_sets", 0):
+                return 2
+            return 1
+
+        def _secondary(ex: Exercise) -> tuple:
+            s = _status(ex)
+            completed = getattr(ex, "completed_sets", 0)
+            weekly = getattr(ex, "weekly_sets", None)
+
+            if s == 0:  # never → higher weekly target first
+                return (-(weekly or 0),)
+            if s == 1:  # active → fewer completed first
+                return (completed,)
+            if s == 2:  # completed → more overcompletion lower
+                over = (completed - (weekly or 0)) if weekly else 0
+                return (over,)
+            if s == 3:  # resting → fewer rest days first
+                return (ex.rest_days_remaining or 0,)
+            return (0,)
+
+        exercises = sorted(
+            exercises,
+            key=lambda ex: (_status(ex), _secondary(ex), ex.name.lower()),
+        )
+
         scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
 
         if not exercises:

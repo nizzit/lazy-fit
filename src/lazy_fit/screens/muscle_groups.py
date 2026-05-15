@@ -16,6 +16,34 @@ def build(app: toga.App) -> toga.Box:
 
     muscle_groups: list[MuscleGroup] = get_muscle_groups_with_weekly_stats()
 
+    def _status(mg: MuscleGroup) -> int:
+        # 0 never, 1 active, 2 completed, 3 resting
+        if mg.completed_sets == 0:
+            return 0
+        if (mg.rest_days_remaining is not None and mg.rest_days_remaining > 0):
+            return 3
+        if mg.weekly_sets is not None and mg.completed_sets >= mg.weekly_sets:
+            return 2
+        return 1
+
+    def _secondary(mg: MuscleGroup) -> tuple:
+        s = _status(mg)
+        if s == 0:  # never → more weekly_sets first
+            return (-(mg.weekly_sets or 0),)
+        if s == 1:  # active → fewer completed first
+            return (mg.completed_sets,)
+        if s == 2:  # completed → more overcompletion lower
+            over = (mg.completed_sets - (mg.weekly_sets or 0)) if mg.weekly_sets else 0
+            return (over,)
+        if s == 3:  # resting → fewer rest days first
+            return (mg.rest_days_remaining or 0,)
+        return (0,)
+
+    muscle_groups = sorted(
+        muscle_groups,
+        key=lambda mg: (_status(mg), _secondary(mg), mg.display_name.lower()),
+    )
+
     scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
 
     if not muscle_groups:
