@@ -7,7 +7,12 @@ from toga.style import Pack
 from toga.style.pack import COLUMN
 
 from lazy_fit.i18n import t
-from lazy_fit.db.models import get_exercises_by_muscle_group, MuscleGroup, Exercise
+from lazy_fit.db.models import (
+    get_exercises_by_muscle_group,
+    get_muscle_groups_with_weekly_stats,
+    MuscleGroup,
+    Exercise,
+)
 from lazy_fit.ui_constants import (
     COLOR_BTN_ADD,
     COLOR_BTN_PRIMARY,
@@ -37,7 +42,29 @@ def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
     def _build_content() -> toga.Box:
         exercises: list[Exercise] = get_exercises_by_muscle_group(muscle_group.id)
 
-        def _status(ex: Exercise) -> int:
+        mg_stats = get_muscle_groups_with_weekly_stats()
+        mg_status = {}
+        for mg in mg_stats:
+            if mg.rest_days_remaining is not None and mg.rest_days_remaining > 0:
+                mg_status[mg.id] = 2  # resting
+            elif mg.weekly_sets is None or mg.weekly_sets == 0:
+                mg_status[mg.id] = 0  # not completed (no plan)
+            elif mg.completed_sets < mg.weekly_sets:
+                mg_status[mg.id] = 0  # not completed
+            else:
+                mg_status[mg.id] = 1  # completed
+
+        def _group_status(ex: Exercise) -> int:
+            statuses = [mg_status.get(mid, 0) for mid in ex.muscle_group_ids]
+            if not statuses:
+                return 0
+            if 2 in statuses:
+                return 2
+            if 0 in statuses:
+                return 0
+            return 1
+
+        def _exercise_status(ex: Exercise) -> int:
             # 0 never, 1 active, 2 completed, 3 resting
             if getattr(ex, "completed_sets", 0) == 0:
                 return 0
@@ -48,7 +75,7 @@ def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
             return 1
 
         def _secondary(ex: Exercise) -> tuple:
-            s = _status(ex)
+            s = _exercise_status(ex)
             completed = getattr(ex, "completed_sets", 0)
             weekly = getattr(ex, "weekly_sets", None)
 
@@ -65,7 +92,7 @@ def build(app: toga.App, muscle_group: MuscleGroup) -> toga.Box:
 
         exercises = sorted(
             exercises,
-            key=lambda ex: (_status(ex), _secondary(ex), ex.name.lower()),
+            key=lambda ex: (_group_status(ex), _secondary(ex), ex.name.lower()),
         )
 
         scroll_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
