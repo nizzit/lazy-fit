@@ -18,7 +18,7 @@ from lazy_fit.android_api import (
 )
 from lazy_fit.i18n import t
 from lazy_fit.ui_constants import (
-    BTN_TIMER_FONT,
+    FONT_MD,
     BTN_TIMER_H,
     BTN_TIMER_W,
     COLOR_BTN_PRIMARY,
@@ -176,7 +176,7 @@ def build(
             margin=8,
             width=BTN_TIMER_W,
             height=BTN_TIMER_H,
-            font_size=BTN_TIMER_FONT,
+            font_size=FONT_MD,
             background_color=COLOR_BTN_PRIMARY(),
         ),
     )

@@ -29,7 +29,6 @@ FORM_INPUT_W: int = (
 BTN_MENU_W: int = 280
 BTN_TIMER_W: int = 160
 BTN_TIMER_H: int = 88
-BTN_TIMER_FONT: int = 18
 BTN_SET_W: int = 64
 
 # ---------------------------------------------------------------------------
