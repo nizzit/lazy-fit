@@ -43,6 +43,7 @@ _IS_ANDROID: bool = sys.platform == "android"
 _PALETTE: dict[str, str] = {
     "btn_primary": "#b2dfdb",  # teal 100
     "btn_add": "#26a69a",  # teal 400
+    "btn_disabled": "#bdbdbd",  # grey 400
     "btn_secondary": "#f5f5f5",  # grey 100
     "btn_danger": "#ff80ab",  # pink A100
     "btn_danger_active": "#ff4081",  # pink A200
@@ -72,6 +73,10 @@ def COLOR_BTN_SECONDARY() -> Optional[str]:
 
 def COLOR_BTN_DANGER() -> Optional[str]:
     return theme_color("btn_danger")  # noqa: N802
+
+
+def COLOR_BTN_DISABLED() -> Optional[str]:
+    return theme_color("btn_disabled")  # noqa: N802
 
 
 def COLOR_BTN_DANGER_ACTIVE() -> Optional[str]:
