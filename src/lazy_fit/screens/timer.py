@@ -17,7 +17,15 @@ from lazy_fit.android_api import (
     send_notification,
 )
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import BTN_TIMER_W, COLOR_BTN_PRIMARY, FONT_LG, FONT_XL, themed_pack
+from lazy_fit.ui_constants import (
+    BTN_TIMER_FONT,
+    BTN_TIMER_H,
+    BTN_TIMER_W,
+    COLOR_BTN_PRIMARY,
+    FONT_LG,
+    FONT_XL,
+    themed_pack,
+)
 
 _log = logging.getLogger("lazy_fit")
 
@@ -98,6 +106,7 @@ def build(
             return
         minimized[0] = True
         from lazy_fit.db.models import set_setting
+
         set_setting("rest_timer_minimized", "1")
         # nav_pop removes timer from stack; _render_current will show the banner
         # because active_timer is still set and screen_widget != current top.
@@ -126,6 +135,7 @@ def build(
                     # Finish timer immediately, but keep wake lock alive for
                     # a configurable delay so the screen stays on a bit longer.
                     from lazy_fit.db.models import get_setting
+
                     try:
                         delay = int(get_setting("wake_lock_delay", "5"))
                     except (ValueError, TypeError):
@@ -162,7 +172,13 @@ def build(
     stop_btn = toga.Button(
         stop_label,
         on_press=_stop_and_done,
-        style=themed_pack(margin=8, width=BTN_TIMER_W, background_color=COLOR_BTN_PRIMARY()),
+        style=themed_pack(
+            margin=8,
+            width=BTN_TIMER_W,
+            height=BTN_TIMER_H,
+            font_size=BTN_TIMER_FONT,
+            background_color=COLOR_BTN_PRIMARY(),
+        ),
     )
 
     center_children: list[toga.Widget] = []
@@ -196,7 +212,7 @@ def build(
         "elapsed": elapsed,
         "mode": mode,
         "wake_lock_ref": wake_lock_ref,
-        "banner_label": None,       # assigned by _render_current when banner is shown
+        "banner_label": None,  # assigned by _render_current when banner is shown
         "banner_text": _fmt_time(elapsed[0]),
         "screen_widget": root,
         "screen_title": screen_title,
@@ -212,5 +228,6 @@ def build(
 
     if mode == "countdown":
         from lazy_fit.db.models import get_setting
+
         if get_setting("rest_timer_minimized", "0") == "1":
             _minimize()
