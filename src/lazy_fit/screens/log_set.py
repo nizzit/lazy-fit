@@ -141,12 +141,13 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
                 avg_hr=avg_hr, max_hr=max_hr,
             )
 
-        # Reset timer gate for time and cardio exercises
-        timer_done_ref[0] = False
-        if save_btn_ref[0] is not None:
-            save_btn_ref[0].enabled = False
-            if COLOR_BTN_DISABLED() is not None:
-                save_btn_ref[0].style.background_color = COLOR_BTN_DISABLED()
+        # Reset timer gate for time and cardio exercises only
+        if exercise.type in ("time", "cardio"):
+            timer_done_ref[0] = False
+            if save_btn_ref[0] is not None:
+                save_btn_ref[0].enabled = False
+                if COLOR_BTN_DISABLED() is not None:
+                    save_btn_ref[0].style.background_color = COLOR_BTN_DISABLED()
 
         if value_input_ref[0]:
             value_input_ref[0].value = _default_value()
