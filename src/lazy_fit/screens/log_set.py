@@ -10,7 +10,7 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import COLOR_BTN_ADD, COLOR_BTN_DISABLED, COLOR_BTN_PRIMARY, FONT_LG, FONT_MD, FORM_INPUT_W, SPACE_SM, SPACE_XS, themed_pack
+from lazy_fit.ui_constants import COLOR_BTN_ADD, COLOR_BTN_PRIMARY, FONT_LG, FONT_MD, FORM_INPUT_W, SPACE_SM, SPACE_XS, themed_pack
 from lazy_fit.widgets import StepperInput
 from lazy_fit.screens._workout_log import populate_workout_log
 from lazy_fit.db.models import (
@@ -45,17 +45,32 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     avg_hr_ref: list[Optional[StepperInput]] = [None]
     max_hr_ref: list[Optional[StepperInput]] = [None]
     timer_done_ref: list[bool] = [False]
-    save_btn_ref: list[Optional[toga.Button]] = [None]
+    action_btn_ref: list[Optional[toga.Button]] = [None]
 
     # ------------------------------------------------------------------ exercise timer
+    def _set_btn_start_mode() -> None:
+        btn = action_btn_ref[0]
+        if btn is None:
+            return
+        btn.text = t("timer_start")
+        btn.on_press = on_start_timer
+        if COLOR_BTN_PRIMARY() is not None:
+            btn.style.background_color = COLOR_BTN_PRIMARY()
+
+    def _set_btn_save_mode() -> None:
+        btn = action_btn_ref[0]
+        if btn is None:
+            return
+        btn.text = t("save_set")
+        btn.on_press = on_save
+        if COLOR_BTN_ADD() is not None:
+            btn.style.background_color = COLOR_BTN_ADD()
+
     def _on_exercise_timer_done(elapsed_secs: int) -> None:
         if value_input_ref[0] is not None:
             value_input_ref[0].value = elapsed_secs
         timer_done_ref[0] = True
-        if save_btn_ref[0] is not None:
-            save_btn_ref[0].enabled = True
-            if COLOR_BTN_ADD() is not None:
-                save_btn_ref[0].style.background_color = COLOR_BTN_ADD()
+        _set_btn_save_mode()
 
     def on_start_timer(widget: toga.Widget) -> None:
         from lazy_fit.screens.timer import build as build_timer
@@ -144,10 +159,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         # Reset timer gate for time and cardio exercises only
         if exercise.type in ("time", "cardio"):
             timer_done_ref[0] = False
-            if save_btn_ref[0] is not None:
-                save_btn_ref[0].enabled = False
-                if COLOR_BTN_DISABLED() is not None:
-                    save_btn_ref[0].style.background_color = COLOR_BTN_DISABLED()
+            _set_btn_start_mode()
 
         if value_input_ref[0]:
             value_input_ref[0].value = _default_value()
@@ -190,25 +202,26 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     if exercise.type == "reps":
         form_children: list[toga.Widget] = [_field("reps", value_input)]
     elif exercise.type == "time":
-        start_btn = toga.Button(
+        action_btn = toga.Button(
             t("timer_start"),
             on_press=on_start_timer,
-            style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY()),
+            style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY()),
         )
-        form_children = [start_btn, _field("duration", value_input)]
+        action_btn_ref[0] = action_btn
+        form_children = [_field("duration", value_input)]
     else:  # cardio
-        start_btn = toga.Button(
+        action_btn = toga.Button(
             t("timer_start"),
             on_press=on_start_timer,
-            style=themed_pack(margin=SPACE_XS, background_color=COLOR_BTN_PRIMARY()),
+            style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY()),
         )
+        action_btn_ref[0] = action_btn
         prev_avg_hr, prev_max_hr = get_last_heart_rates_for_exercise(exercise.id)
         avg_hr_input = StepperInput(min=0, step=1, value=prev_avg_hr or 0, style=Pack(margin=4))
         max_hr_input = StepperInput(min=0, step=1, value=prev_max_hr or 0, style=Pack(margin=4))
         avg_hr_ref[0] = avg_hr_input
         max_hr_ref[0] = max_hr_input
         form_children = [
-            start_btn,
             _field("duration", value_input),
             _field("avg_hr", avg_hr_input),
             _field("max_hr", max_hr_input),
@@ -234,14 +247,11 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     )
 
     save_btn = toga.Button(t("save_set"), on_press=on_save, style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_ADD()))
-    save_btn_ref[0] = save_btn
-    if exercise.type in ("time", "cardio"):
-        save_btn.enabled = False
-        if COLOR_BTN_DISABLED() is not None:
-            save_btn.style.background_color = COLOR_BTN_DISABLED()
+
+    bottom_btn = save_btn if exercise.type == "reps" else action_btn
 
     form_box = toga.Box(
-        children=form_children + [equip_row, save_btn],
+        children=form_children + [equip_row, bottom_btn],
         style=Pack(direction=COLUMN, margin=8),
     )
 
