@@ -56,7 +56,20 @@ def populate_workout_log(
     per_row = _buttons_per_row(app)
 
     for ex_name, ex_id, ex_sets in groups:
-        prev_values = get_prev_workout_values_for_exercise(ex_id, date)
+        # Cache prev_values per equipment_id to avoid repeated DB queries.
+        # _EQ_KEY uses a sentinel so None (no equipment) is a valid distinct key.
+        _prev_cache: dict[object, list[int]] = {}
+        # Track how many sets per equipment_id we've seen so far (= set_index within that group).
+        _eq_counters: dict[object, int] = {}
+
+        def _get_prev(eq_id: Optional[int]) -> list[int]:
+            key: object = eq_id if eq_id is not None else "__none__"
+            if key not in _prev_cache:
+                _prev_cache[key] = get_prev_workout_values_for_exercise(
+                    ex_id, date, equipment_id=eq_id, _filter_equipment=True
+                )
+            return _prev_cache[key]
+
         box.add(toga.Label(ex_name, style=Pack(margin=(8, 8, 2, 8), font_size=FONT_SM)))
         wrap = toga.Box(style=Pack(direction=COLUMN))
         current_row = toga.Box(style=Pack(direction=ROW))
@@ -64,7 +77,11 @@ def populate_workout_log(
             if i > 0 and i % per_row == 0:
                 wrap.add(current_row)
                 current_row = toga.Box(style=Pack(direction=ROW))
-            _add_set_button(current_row, ws, i, prev_values, app, on_set_changed)
+            eq_key: object = ws.equipment_id if ws.equipment_id is not None else "__none__"
+            set_idx = _eq_counters.get(eq_key, 0)
+            _eq_counters[eq_key] = set_idx + 1
+            prev_values = _get_prev(ws.equipment_id)
+            _add_set_button(current_row, ws, set_idx, prev_values, app, on_set_changed)
         if current_row.children:
             wrap.add(current_row)
         box.add(wrap)
