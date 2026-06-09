@@ -758,24 +758,25 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         mg_rest_days: Optional[int] = r["rest_days"]
         effective_rest = mg_rest_days if (mg_rest_days is not None) else rest_days_setting
 
-        rest_remaining: Optional[int] = None
-        if limit_reached:
-            # Daily limit hit — rest starts now
-            rest_remaining = effective_rest if effective_rest > 0 else 1
-        elif last_trained and not trained_today and effective_rest > 0:
-            # Trained on a previous day — normal rest countdown
-            elapsed = (today - last_trained).days
-            remaining = effective_rest - elapsed + 1
-            if remaining > 0:
-                rest_remaining = remaining
-        # trained today but limit not reached → not resting yet
-
         weekly_limit = r["weekly_sets"]
         weekly_limit_reached = (
             weekly_limit is not None
             and weekly_limit > 0
             and r["completed_sets"] >= weekly_limit
         )
+
+        rest_remaining: Optional[int] = None
+        if trained_today and (limit_reached or weekly_limit_reached):
+            # Daily or weekly limit hit today — rest starts now
+            rest_remaining = effective_rest if effective_rest > 0 else 1
+        elif last_trained and not trained_today and effective_rest > 0:
+            # Trained on a previous day — normal rest countdown
+            elapsed = (today - last_trained).days
+            remaining = effective_rest - elapsed
+            if remaining > 0:
+                rest_remaining = remaining
+        # trained today, no limit reached → still active, not resting
+
         mg = MuscleGroup(
             id=r["id"],
             name=r["name"],
@@ -783,7 +784,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
             rest_days=mg_rest_days,
             completed_sets=r["completed_sets"],
             rest_days_remaining=rest_remaining,
-            trained_today=trained_today and not limit_reached,
+            trained_today=trained_today and not (rest_remaining is not None and rest_remaining > 0),
             weekly_limit_reached=weekly_limit_reached,
             is_builtin=r["is_builtin"],
             builtin_key=r["builtin_key"],
