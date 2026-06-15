@@ -94,12 +94,12 @@ def _set_diff(
 
     Returns (None, None) when there is no previous set at *set_index*
     (current workout has more sets than the previous one).
-    For time/cardio exercises the diff is formatted as MM:SS.
+    For time exercises the diff is formatted as MM:SS.
     """
     if set_index >= len(prev_values):
         return None, None
     diff = current_val - prev_values[set_index]
-    if exercise_type in ("time", "cardio"):
+    if exercise_type == "time":
         if diff > 0:
             return f"+{_fmt_duration(diff)}", COLOR_DIFF_UP()
         if diff < 0:
@@ -125,19 +125,7 @@ def _add_set_button(
     if ws.exercise_type == "reps":
         current_val = ws.reps or 0
         base_label = str(current_val)
-    elif ws.exercise_type == "cardio":
-        current_val = ws.duration_sec or 0
-        secs = current_val
-        time_str = f"{secs // 60:02d}:{secs % 60:02d}"
-        if ws.avg_hr is not None and ws.max_hr is not None:
-            base_label = f"{time_str} \u2665 {ws.avg_hr}/{ws.max_hr}"
-        elif ws.avg_hr is not None:
-            base_label = f"{time_str} \u2665 {ws.avg_hr}"
-        elif ws.max_hr is not None:
-            base_label = f"{time_str} \u2665 /{ws.max_hr}"
-        else:
-            base_label = time_str
-    else:
+    else:  # time
         current_val = ws.duration_sec or 0
         secs = current_val
         base_label = f"{secs // 60:02d}:{secs % 60:02d}"
@@ -155,37 +143,21 @@ def _add_set_button(
         screen = build_edit(app, ws, _get_equip(), _on_saved)
         app.nav_push(screen, t("edit_set"))
 
-    if ws.exercise_type == "cardio":
-        btn = toga.Button(base_label, on_press=on_press, style=themed_pack(flex=1, background_color=COLOR_BTN_SECONDARY()))
-    else:
-        btn = toga.Button(base_label, on_press=on_press, style=themed_pack(width=BTN_SET_W, background_color=COLOR_BTN_SECONDARY()))
+    btn = toga.Button(base_label, on_press=on_press, style=themed_pack(width=BTN_SET_W, background_color=COLOR_BTN_SECONDARY()))
 
     children: list[toga.Widget] = [btn]
     if diff_text is not None:
-        if ws.exercise_type == "cardio":
-            diff_style = Pack(
-                flex=1,
-                font_size=FONT_XS,
-                text_align="center",
-                **({"color": diff_color} if diff_color else {}),
-            )
-        else:
-            diff_style = Pack(
-                width=BTN_SET_W,
-                font_size=FONT_XS,
-                text_align="center",
-                **({"color": diff_color} if diff_color else {}),
-            )
+        diff_style = Pack(
+            width=BTN_SET_W,
+            font_size=FONT_XS,
+            text_align="center",
+            **({"color": diff_color} if diff_color else {}),
+        )
         children.append(toga.Label(diff_text, style=diff_style))
 
-    if ws.exercise_type == "cardio":
-        container.add(
-            toga.Box(children=children, style=Pack(direction=COLUMN, flex=1, margin=SPACE_XS))
-        )
-    else:
-        container.add(
-            toga.Box(children=children, style=Pack(direction=COLUMN, margin=SPACE_XS))
-        )
+    container.add(
+        toga.Box(children=children, style=Pack(direction=COLUMN, margin=SPACE_XS))
+    )
 
 
 def _buttons_per_row(app: toga.App, slot_width: int = 72) -> int:

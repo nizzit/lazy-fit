@@ -25,15 +25,10 @@ class MuscleGroup:
     rest_days_remaining: Optional[int] = None  # computed: days left in rest
     trained_today: bool = False
     weekly_limit_reached: bool = False  # computed: completed_sets >= weekly_sets
-    is_builtin: int = 0  # 1 for built-in groups (e.g. cardio); cannot be deleted
-    builtin_key: Optional[str] = None  # i18n key for built-in group display name
 
     @property
     def display_name(self) -> str:
-        """Return the localised display name (built-ins translate via i18n key)."""
-        if self.builtin_key:
-            from lazy_fit.i18n import t
-            return t(self.builtin_key)
+        """Return the display name."""
         return self.name
 
 
@@ -47,7 +42,7 @@ class Equipment:
 class Exercise:
     id: int
     name: str
-    type: str  # 'reps' | 'time' | 'cardio'
+    type: str  # 'reps' | 'time'
     muscle_group_ids: list[int] = field(default_factory=list)
     muscle_group_names: list[str] = field(default_factory=list)
     rest_days_remaining: Optional[int] = None  # computed: max rest days remaining across linked muscle groups
@@ -66,8 +61,6 @@ class WorkoutSet:
     exercise_name: str = ""
     equipment_name: str = ""
     exercise_type: str = ""
-    avg_hr: Optional[int] = None  # average heart rate (cardio only)
-    max_hr: Optional[int] = None  # maximum heart rate (cardio only)
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +71,7 @@ class WorkoutSet:
 def get_muscle_group_by_id(mg_id: int) -> Optional[MuscleGroup]:
     row = (
         get_connection()
-        .execute("SELECT id, name, weekly_sets, rest_days, is_builtin, builtin_key FROM muscle_group WHERE id = ?", (mg_id,))
+        .execute("SELECT id, name, weekly_sets, rest_days FROM muscle_group WHERE id = ?", (mg_id,))
         .fetchone()
     )
     return MuscleGroup(**dict(row)) if row else None
@@ -87,7 +80,7 @@ def get_muscle_group_by_id(mg_id: int) -> Optional[MuscleGroup]:
 def get_all_muscle_groups() -> list[MuscleGroup]:
     rows = (
         get_connection()
-        .execute("SELECT id, name, weekly_sets, rest_days, is_builtin, builtin_key FROM muscle_group ORDER BY name")
+        .execute("SELECT id, name, weekly_sets, rest_days FROM muscle_group ORDER BY name")
         .fetchall()
     )
     return [MuscleGroup(**dict(r)) for r in rows]
@@ -123,24 +116,8 @@ def update_muscle_group(
 
 def delete_muscle_group(mg_id: int) -> None:
     conn = get_connection()
-    # Guard: built-in groups cannot be deleted
-    row = conn.execute("SELECT is_builtin FROM muscle_group WHERE id=?", (mg_id,)).fetchone()
-    if row and row["is_builtin"]:
-        return
     conn.execute("DELETE FROM muscle_group WHERE id=?", (mg_id,))
     conn.commit()
-
-
-def get_cardio_group() -> Optional[MuscleGroup]:
-    """Return the built-in cardio muscle group, or None if not found."""
-    row = (
-        get_connection()
-        .execute(
-            "SELECT id, name, weekly_sets, rest_days, is_builtin, builtin_key FROM muscle_group WHERE is_builtin = 1 LIMIT 1"
-        )
-        .fetchone()
-    )
-    return MuscleGroup(**dict(row)) if row else None
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +160,6 @@ def delete_equipment(eq_id: int) -> None:
 
 def _rows_to_exercises(rows: list) -> list[Exercise]:
     """Convert flat JOIN rows (one row per exercise_muscle_group link) to Exercise list."""
-    from lazy_fit.i18n import t as _t
     exercises: dict[int, Exercise] = {}
     for r in rows:
         d = dict(r)
@@ -197,8 +173,7 @@ def _rows_to_exercises(rows: list) -> list[Exercise]:
                 muscle_group_names=[],
             )
         mg_id = d.get("muscle_group_id")
-        bk = d.get("muscle_group_builtin_key")
-        mg_name = _t(bk) if bk else d.get("muscle_group_name")
+        mg_name = d.get("muscle_group_name")
         if mg_id is not None and mg_id not in exercises[ex_id].muscle_group_ids:
             exercises[ex_id].muscle_group_ids.append(mg_id)
         if mg_name is not None and mg_name not in exercises[ex_id].muscle_group_names:
@@ -212,8 +187,7 @@ def _fetch_exercise_by_id(ex_id: int) -> Optional[Exercise]:
         .execute(
             """
             SELECT e.id, e.name, e.type,
-                   emg.muscle_group_id, mg.name AS muscle_group_name,
-                   mg.builtin_key AS muscle_group_builtin_key
+                   emg.muscle_group_id, mg.name AS muscle_group_name
             FROM exercise e
             LEFT JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
             LEFT JOIN muscle_group mg ON mg.id = emg.muscle_group_id
@@ -248,8 +222,7 @@ def get_all_exercises() -> list[Exercise]:
         get_connection()
         .execute("""
             SELECT e.id, e.name, e.type,
-                   emg.muscle_group_id, mg.name AS muscle_group_name,
-                   mg.builtin_key AS muscle_group_builtin_key
+                   emg.muscle_group_id, mg.name AS muscle_group_name
             FROM exercise e
             LEFT JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
             LEFT JOIN muscle_group mg ON mg.id = emg.muscle_group_id
@@ -266,8 +239,7 @@ def get_exercises_by_muscle_group(mg_id: int) -> list[Exercise]:
         .execute(
             """
             SELECT e.id, e.name, e.type,
-                   emg2.muscle_group_id, mg2.name AS muscle_group_name,
-                   mg2.builtin_key AS muscle_group_builtin_key
+                   emg2.muscle_group_id, mg2.name AS muscle_group_name
             FROM exercise e
             JOIN exercise_muscle_group emg ON emg.exercise_id = e.id AND emg.muscle_group_id = ?
             LEFT JOIN exercise_muscle_group emg2 ON emg2.exercise_id = e.id
@@ -379,8 +351,6 @@ def _row_to_workout_set(r: dict) -> WorkoutSet:
         exercise_name=r.get("exercise_name", ""),
         equipment_name=r.get("equipment_name", "") or "",
         exercise_type=r.get("exercise_type", ""),
-        avg_hr=r.get("avg_hr"),
-        max_hr=r.get("max_hr"),
     )
 
 
@@ -421,7 +391,7 @@ def get_muscle_group_names_for_date(date: str) -> list[str]:
         get_connection()
         .execute(
             """
-            SELECT DISTINCT mg.name, mg.builtin_key
+            SELECT DISTINCT mg.name
             FROM workout_set ws
             JOIN exercise e ON e.id = ws.exercise_id
             JOIN exercise_muscle_group emg ON emg.exercise_id = e.id
@@ -433,11 +403,7 @@ def get_muscle_group_names_for_date(date: str) -> list[str]:
         )
         .fetchall()
     )
-    result = []
-    for r in rows:
-        bk = r["builtin_key"]
-        result.append(_t(bk) if bk else r["name"])
-    return result
+    return [r["name"] for r in rows]
 
 
 def create_workout_set(
@@ -446,8 +412,6 @@ def create_workout_set(
     reps: Optional[int] = None,
     duration_sec: Optional[int] = None,
     equipment_id: Optional[int] = None,
-    avg_hr: Optional[int] = None,
-    max_hr: Optional[int] = None,
 ) -> WorkoutSet:
     conn = get_connection()
     # Determine next order_index for this date
@@ -457,9 +421,9 @@ def create_workout_set(
     ).fetchone()
     order_index = row["next_idx"]
     cur = conn.execute(
-        """INSERT INTO workout_set(date, exercise_id, order_index, reps, duration_sec, equipment_id, avg_hr, max_hr)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (date, exercise_id, order_index, reps, duration_sec, equipment_id, avg_hr, max_hr),
+        """INSERT INTO workout_set(date, exercise_id, order_index, reps, duration_sec, equipment_id)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (date, exercise_id, order_index, reps, duration_sec, equipment_id),
     )
     conn.commit()
     row = conn.execute(
@@ -481,13 +445,11 @@ def update_workout_set(
     reps: Optional[int] = None,
     duration_sec: Optional[int] = None,
     equipment_id: Optional[int] = None,
-    avg_hr: Optional[int] = None,
-    max_hr: Optional[int] = None,
 ) -> None:
     conn = get_connection()
     conn.execute(
-        "UPDATE workout_set SET reps=?, duration_sec=?, equipment_id=?, avg_hr=?, max_hr=? WHERE id=?",
-        (reps, duration_sec, equipment_id, avg_hr, max_hr, set_id),
+        "UPDATE workout_set SET reps=?, duration_sec=?, equipment_id=? WHERE id=?",
+        (reps, duration_sec, equipment_id, set_id),
     )
     conn.commit()
 
@@ -603,27 +565,6 @@ def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
     return row["equipment_id"]
 
 
-def get_last_heart_rates_for_exercise(
-    exercise_id: int,
-) -> tuple[Optional[int], Optional[int]]:
-    """Return (avg_hr, max_hr) from the most recent cardio workout_set for *exercise_id*.
-
-    Returns (None, None) if no previous workout exists or if both values are NULL.
-    """
-    row = get_connection().execute(
-        """
-        SELECT avg_hr, max_hr FROM workout_set
-        WHERE exercise_id = ? AND (avg_hr IS NOT NULL OR max_hr IS NOT NULL)
-        ORDER BY date DESC, order_index DESC, created_at DESC
-        LIMIT 1
-        """,
-        (exercise_id,),
-    ).fetchone()
-    if row is None:
-        return (None, None)
-    return (row["avg_hr"], row["max_hr"])
-
-
 # ---------------------------------------------------------------------------
 # App settings
 # ---------------------------------------------------------------------------
@@ -706,7 +647,7 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
         .execute(
             """
             SELECT
-                mg.id, mg.name, mg.weekly_sets, mg.rest_days, mg.is_builtin, mg.builtin_key,
+                mg.id, mg.name, mg.weekly_sets, mg.rest_days,
                 (
                     SELECT COUNT(ws.id)
                     FROM workout_set ws
@@ -786,8 +727,6 @@ def get_muscle_groups_with_weekly_stats() -> list[MuscleGroup]:
             rest_days_remaining=rest_remaining,
             trained_today=trained_today and not (rest_remaining is not None and rest_remaining > 0),
             weekly_limit_reached=weekly_limit_reached,
-            is_builtin=r["is_builtin"],
-            builtin_key=r["builtin_key"],
         )
         muscle_groups.append(mg)
 
@@ -924,75 +863,6 @@ def get_default_value_for_next_set(
 # Export / Import
 # ---------------------------------------------------------------------------
 
-# Canonical built-in group definitions: (fixed_id, builtin_key, canonical_name)
-# Negative IDs are used so they never collide with AUTOINCREMENT-assigned IDs
-# and remain stable across export/import cycles.
-_BUILTIN_GROUPS: list[tuple[int, str, str]] = [
-    (-1, "cardio_group_name", "cardio"),
-]
-
-
-def _migrate_builtin_id(conn: object, current_id: int, builtin_id: int, builtin_key: str) -> None:
-    """Reassign a built-in group's rowid to its canonical negative value.
-
-    Temporarily disables FK enforcement so the rowid can be changed and the
-    exercise_muscle_group references updated atomically.
-    """
-    import sqlite3 as _sqlite3
-
-    assert isinstance(conn, _sqlite3.Connection)
-    try:
-        conn.execute("PRAGMA foreign_keys = OFF")
-        conn.executescript(f"""
-            UPDATE exercise_muscle_group
-               SET muscle_group_id = {builtin_id}
-             WHERE muscle_group_id = {current_id};
-            UPDATE muscle_group
-               SET id = {builtin_id}, is_builtin = 1, builtin_key = '{builtin_key}'
-             WHERE id = {current_id};
-        """)
-        conn.execute("PRAGMA foreign_keys = ON")
-    except Exception:
-        conn.execute("PRAGMA foreign_keys = ON")
-        raise
-
-
-def ensure_builtin_groups() -> None:
-    """Ensure all built-in muscle groups exist with correct flags and canonical IDs.
-
-    Called after import or reset.  Handles four cases per built-in entry:
-    1. Row has correct builtin_key AND correct id  → just update is_builtin flag.
-    2. Row has correct builtin_key but wrong id    → migrate rowid to canonical value.
-    3. No builtin_key match; row matches canonical name (old backup) → migrate + set flags.
-    4. Neither exists                              → insert with explicit canonical id.
-    """
-    conn = get_connection()
-    for builtin_id, builtin_key, canonical_name in _BUILTIN_GROUPS:
-        row = conn.execute(
-            "SELECT id FROM muscle_group WHERE builtin_key = ?",
-            (builtin_key,),
-        ).fetchone()
-        if not row:
-            row = conn.execute(
-                "SELECT id FROM muscle_group WHERE name = ?",
-                (canonical_name,),
-            ).fetchone()
-        if row:
-            current_id = row["id"]
-            if current_id != builtin_id:
-                _migrate_builtin_id(conn, current_id, builtin_id, builtin_key)
-            else:
-                conn.execute(
-                    "UPDATE muscle_group SET is_builtin = 1, builtin_key = ? WHERE id = ?",
-                    (builtin_key, builtin_id),
-                )
-        else:
-            conn.execute(
-                "INSERT INTO muscle_group(id, name, is_builtin, builtin_key) VALUES (?, ?, 1, ?)",
-                (builtin_id, canonical_name, builtin_key),
-            )
-    conn.commit()
-
 
 def export_all_data() -> dict:
     """Serialize all user data to a plain dict suitable for JSON serialisation."""
@@ -1000,7 +870,7 @@ def export_all_data() -> dict:
     muscle_groups = [
         dict(r)
         for r in conn.execute(
-            "SELECT id, name, weekly_sets, is_builtin, builtin_key FROM muscle_group ORDER BY id"
+            "SELECT id, name, weekly_sets FROM muscle_group ORDER BY id"
         ).fetchall()
     ]
     equipment = [
@@ -1027,7 +897,7 @@ def export_all_data() -> dict:
         dict(r)
         for r in conn.execute(
             """SELECT id, date, exercise_id, order_index, reps,
-                      duration_sec, equipment_id, avg_hr, max_hr, created_at
+                      duration_sec, equipment_id, created_at
                FROM workout_set ORDER BY date, order_index, created_at"""
         ).fetchall()
     ]
@@ -1043,8 +913,6 @@ def export_all_data() -> dict:
 
 def reset_all_data() -> None:
     """Delete all user-generated data (sets, exercises, muscle groups, equipment)."""
-    from lazy_fit.db.connection import init_db
-
     conn = get_connection()
     conn.execute("DELETE FROM workout_set")
     conn.execute("DELETE FROM exercise_muscle_group")
@@ -1052,7 +920,6 @@ def reset_all_data() -> None:
     conn.execute("DELETE FROM equipment")
     conn.execute("DELETE FROM muscle_group")
     conn.commit()
-    init_db()  # recreate built-in groups
 
 
 def import_all_data(data: dict) -> None:
@@ -1068,8 +935,8 @@ def import_all_data(data: dict) -> None:
     # Insert in FK-safe order (parents first)
     for mg in data.get("muscle_groups", []):
         conn.execute(
-            "INSERT INTO muscle_group(id, name, weekly_sets, is_builtin, builtin_key) VALUES (?, ?, ?, ?, ?)",
-            (mg["id"], mg["name"], mg.get("weekly_sets"), mg.get("is_builtin", 0), mg.get("builtin_key")),
+            "INSERT INTO muscle_group(id, name, weekly_sets) VALUES (?, ?, ?)",
+            (mg["id"], mg["name"], mg.get("weekly_sets")),
         )
     for eq in data.get("equipment", []):
         conn.execute(
@@ -1093,8 +960,8 @@ def import_all_data(data: dict) -> None:
     for ws in data.get("workout_sets", []):
         conn.execute(
             """INSERT INTO workout_set
-               (id, date, exercise_id, order_index, reps, duration_sec, equipment_id, avg_hr, max_hr, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, date, exercise_id, order_index, reps, duration_sec, equipment_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 ws["id"],
                 ws["date"],
@@ -1103,10 +970,7 @@ def import_all_data(data: dict) -> None:
                 ws.get("reps"),
                 ws.get("duration_sec"),
                 ws.get("equipment_id"),
-                ws.get("avg_hr"),
-                ws.get("max_hr"),
                 ws.get("created_at", ""),
             ),
         )
     conn.commit()
-    ensure_builtin_groups()  # restore / repair built-in group flags

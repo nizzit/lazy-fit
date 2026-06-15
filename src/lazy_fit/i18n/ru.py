@@ -19,11 +19,6 @@ strings: dict[str, str] = {
     "no_exercises_in_group": "Нет упражнений",
     "type_reps": "Повторения",
     "type_time": "Время",
-    "type_cardio": "Кардио",
-    # Cardio
-    "cardio_group_name": "Кардио",
-    "avg_hr": "Средний пульс",
-    "max_hr": "Макс. пульс",
     # Log set
     "log_set": "Записать подход",
     "reps": "Повторения",

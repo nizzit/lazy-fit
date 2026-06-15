@@ -57,23 +57,6 @@ def build(
     )
     equip_row = _field("equipment", equip_select)
 
-    # Cardio heart rate inputs
-    avg_hr_input: Optional[StepperInput] = None
-    max_hr_input: Optional[StepperInput] = None
-    cardio_rows: list[toga.Widget] = []
-    if ws.exercise_type == "cardio":
-        avg_hr_input = StepperInput(
-            min=0, step=1,
-            value=ws.avg_hr if ws.avg_hr is not None else 0,
-            style=Pack(margin=SPACE_XS),
-        )
-        max_hr_input = StepperInput(
-            min=0, step=1,
-            value=ws.max_hr if ws.max_hr is not None else 0,
-            style=Pack(margin=SPACE_XS),
-        )
-        cardio_rows = [_field("avg_hr", avg_hr_input), _field("max_hr", max_hr_input)]
-
     def on_save(widget: toga.Widget) -> None:
         raw_value = value_input.value
         try:
@@ -89,25 +72,10 @@ def build(
                     eq_id = eq.id
                     break
 
-        avg_hr: Optional[int] = None
-        max_hr: Optional[int] = None
-        if ws.exercise_type == "cardio":
-            try:
-                avg_hr = int(avg_hr_input.value) if avg_hr_input and avg_hr_input.value else None
-            except (ValueError, TypeError):
-                avg_hr = None
-            try:
-                max_hr = int(max_hr_input.value) if max_hr_input and max_hr_input.value else None
-            except (ValueError, TypeError):
-                max_hr = None
-
         if ws.exercise_type == "reps":
             update_workout_set(ws.id, reps=int_value, equipment_id=eq_id)
-        elif ws.exercise_type == "time":
+        else:  # time
             update_workout_set(ws.id, duration_sec=int_value, equipment_id=eq_id)
-        else:  # cardio
-            update_workout_set(ws.id, duration_sec=int_value, equipment_id=eq_id,
-                               avg_hr=avg_hr, max_hr=max_hr)
 
         on_saved()
         app.nav_pop()
@@ -130,7 +98,7 @@ def build(
     )
 
     root = toga.Box(
-        children=[input_row, equip_row] + cardio_rows + [btn_row],
+        children=[input_row, equip_row, btn_row],
         style=Pack(direction=COLUMN, margin=SPACE_MD),
     )
     return wrap_scroll(root)

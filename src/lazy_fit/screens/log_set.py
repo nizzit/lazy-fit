@@ -19,7 +19,6 @@ from lazy_fit.db.models import (
     create_workout_set,
     get_default_value_for_next_set,
     get_last_equipment_for_exercise,
-    get_last_heart_rates_for_exercise,
 )
 
 
@@ -61,8 +60,6 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
     value_input_ref: list[Optional[StepperInput]] = [None]
     equip_select_ref: list[Optional[toga.Selection]] = [None]
     history_box_ref: list[Optional[toga.Box]] = [None]
-    avg_hr_ref: list[Optional[StepperInput]] = [None]
-    max_hr_ref: list[Optional[StepperInput]] = [None]
     timer_done_ref: list[bool] = [False]
     action_btn_ref: list[Optional[toga.Button]] = [None]
 
@@ -142,34 +139,15 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
         eq_id = _selected_equipment_id()
 
-        avg_hr: Optional[int] = None
-        max_hr: Optional[int] = None
-        if exercise.type == "cardio":
-            try:
-                raw_avg = avg_hr_ref[0].value if avg_hr_ref[0] else None
-                avg_hr = int(raw_avg) if raw_avg else None
-            except (ValueError, TypeError):
-                avg_hr = None
-            try:
-                raw_max = max_hr_ref[0].value if max_hr_ref[0] else None
-                max_hr = int(raw_max) if raw_max else None
-            except (ValueError, TypeError):
-                max_hr = None
-
         if exercise.type == "reps":
             create_workout_set(today, exercise.id, reps=int_value, equipment_id=eq_id)
-        elif exercise.type == "time":
+        else:  # time
             create_workout_set(
                 today, exercise.id, duration_sec=int_value, equipment_id=eq_id
             )
-        else:  # cardio
-            create_workout_set(
-                today, exercise.id, duration_sec=int_value, equipment_id=eq_id,
-                avg_hr=avg_hr, max_hr=max_hr,
-            )
 
-        # Reset timer gate for time and cardio exercises only
-        if exercise.type in ("time", "cardio"):
+        # Reset timer gate for time exercises
+        if exercise.type == "time":
             timer_done_ref[0] = False
             _set_btn_start_mode()
 
@@ -213,7 +191,7 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     if exercise.type == "reps":
         form_children: list[toga.Widget] = [_field("reps", value_input)]
-    elif exercise.type == "time":
+    else:  # time
         action_btn = toga.Button(
             t("timer_start"),
             on_press=on_start_timer,
@@ -221,23 +199,6 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         )
         action_btn_ref[0] = action_btn
         form_children = [_field("duration", value_input)]
-    else:  # cardio
-        action_btn = toga.Button(
-            t("timer_start"),
-            on_press=on_start_timer,
-            style=themed_pack(flex=1, margin=SPACE_SM, background_color=COLOR_BTN_PRIMARY()),
-        )
-        action_btn_ref[0] = action_btn
-        prev_avg_hr, prev_max_hr = get_last_heart_rates_for_exercise(exercise.id)
-        avg_hr_input = StepperInput(min=0, step=1, value=prev_avg_hr or 0, style=Pack(margin=4))
-        max_hr_input = StepperInput(min=0, step=1, value=prev_max_hr or 0, style=Pack(margin=4))
-        avg_hr_ref[0] = avg_hr_input
-        max_hr_ref[0] = max_hr_input
-        form_children = [
-            _field("duration", value_input),
-            _field("avg_hr", avg_hr_input),
-            _field("max_hr", max_hr_input),
-        ]
 
     equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
     _last_equip_name = next(

@@ -34,82 +34,23 @@ def init_db() -> None:
         conn.commit()
     except Exception:
         pass  # column already exists
-    # Task 1.1 — add is_builtin flag to muscle_group
-    try:
-        conn.execute(
-            "ALTER TABLE muscle_group ADD COLUMN is_builtin INTEGER NOT NULL DEFAULT 0"
-        )
-        conn.commit()
-    except Exception:
-        pass  # column already exists
-    # Task 1.2 — add heart rate columns to workout_set
-    try:
-        conn.execute("ALTER TABLE workout_set ADD COLUMN avg_hr INTEGER")
-        conn.commit()
-    except Exception:
-        pass  # column already exists
-    try:
-        conn.execute("ALTER TABLE workout_set ADD COLUMN max_hr INTEGER")
-        conn.commit()
-    except Exception:
-        pass  # column already exists
-    # Task 1.3 — migrate exercise table to support 'cardio' type
-    try:
-        row = conn.execute(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='exercise'"
-        ).fetchone()
-        if row and "'cardio'" not in row[0]:
-            conn.execute("PRAGMA foreign_keys = OFF")
-            conn.executescript("""
-                CREATE TABLE exercise_new (
-                    id   INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
-                    type TEXT NOT NULL CHECK(type IN ('reps', 'time', 'cardio'))
-                );
-                INSERT INTO exercise_new SELECT id, name, type FROM exercise;
-                DROP TABLE exercise;
-                ALTER TABLE exercise_new RENAME TO exercise;
-            """)
-            conn.execute("PRAGMA foreign_keys = ON")
-            conn.commit()
-    except Exception:
-        pass
-    # Add builtin_key column for translatable built-in group names
-    try:
-        conn.execute("ALTER TABLE muscle_group ADD COLUMN builtin_key TEXT")
-        conn.commit()
-    except Exception:
-        pass  # column already exists
-    # Backfill builtin_key for existing built-in groups (in case column was just added)
-    try:
-        conn.execute(
-            "UPDATE muscle_group SET builtin_key='cardio_group_name' WHERE is_builtin=1 AND builtin_key IS NULL"
-        )
-        conn.commit()
-    except Exception:
-        pass
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS muscle_group (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             name        TEXT NOT NULL UNIQUE,
             weekly_sets INTEGER,
-            rest_days   INTEGER,
-            is_builtin  INTEGER NOT NULL DEFAULT 0,
-            builtin_key TEXT
+            rest_days   INTEGER
         );
-
-
 
         CREATE TABLE IF NOT EXISTS equipment (
             id   INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE
         );
 
-        -- Task 1.4 — include 'cardio' in CHECK for new databases
         CREATE TABLE IF NOT EXISTS exercise (
             id   INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
-            type TEXT NOT NULL CHECK(type IN ('reps', 'time', 'cardio'))
+            type TEXT NOT NULL CHECK(type IN ('reps', 'time'))
         );
 
         CREATE TABLE IF NOT EXISTS exercise_muscle_group (
@@ -126,8 +67,6 @@ def init_db() -> None:
             reps         INTEGER,
             duration_sec INTEGER,
             equipment_id INTEGER REFERENCES equipment(id) ON DELETE SET NULL,
-            avg_hr       INTEGER,
-            max_hr       INTEGER,
             created_at   TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -138,26 +77,4 @@ def init_db() -> None:
             value TEXT NOT NULL
         );
     """)
-    conn.commit()
-    # Migrate built-in cardio group to canonical id = -1 (stable FK anchor).
-    # Uses FK-off + executescript (which auto-commits) so the rowid update is safe.
-    try:
-        row = conn.execute(
-            "SELECT id FROM muscle_group WHERE (is_builtin = 1 OR builtin_key = 'cardio_group_name') AND id != -1"
-        ).fetchone()
-        if row:
-            old_id = row["id"]
-            conn.execute("PRAGMA foreign_keys = OFF")
-            conn.executescript(f"""
-                UPDATE exercise_muscle_group SET muscle_group_id = -1 WHERE muscle_group_id = {old_id};
-                UPDATE muscle_group SET id = -1 WHERE id = {old_id};
-            """)
-            conn.execute("PRAGMA foreign_keys = ON")
-            conn.commit()
-    except Exception:
-        conn.execute("PRAGMA foreign_keys = ON")
-    # Insert built-in cardio group with canonical id = -1 if not present
-    conn.execute(
-        "INSERT OR IGNORE INTO muscle_group(id, name, is_builtin, builtin_key) VALUES (-1, 'cardio', 1, 'cardio_group_name')"
-    )
     conn.commit()

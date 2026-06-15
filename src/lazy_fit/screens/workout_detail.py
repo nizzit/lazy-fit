@@ -111,7 +111,7 @@ def _add_set_row(
     label_color: Optional[str] = None
     if set_index < len(prev_values):
         diff = current_val - prev_values[set_index]
-        if ws.exercise_type in ("time", "cardio"):
+        if ws.exercise_type == "time":
             if diff > 0:
                 value_text += f"  +{_fmt_duration(diff)}"
                 label_color = COLOR_DIFF_UP()

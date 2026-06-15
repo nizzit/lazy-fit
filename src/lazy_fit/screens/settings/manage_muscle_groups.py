@@ -155,15 +155,12 @@ def _show_form(app: toga.App, mg: Optional[MuscleGroup], refresh_fn: object) -> 
     if mg:
         fields.append(_build_exercises_section(app, mg, refresh_fn))
 
-    # Task 8.1: hide delete button for built-in groups
-    is_builtin = mg.is_builtin if mg else False
-
     form = build_entity_form(
         fields,
         error_label,
         on_save,
         on_cancel,
-        on_delete=on_delete if (mg and not is_builtin) else None,
+        on_delete=on_delete if mg else None,
         app=app,
     )
     title = t("edit") if mg else t("add")

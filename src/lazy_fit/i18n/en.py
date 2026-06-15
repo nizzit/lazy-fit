@@ -19,11 +19,6 @@ strings: dict[str, str] = {
     "no_exercises_in_group": "No exercises",
     "type_reps": "Reps",
     "type_time": "Time",
-    "type_cardio": "Cardio",
-    # Cardio
-    "cardio_group_name": "Cardio",
-    "avg_hr": "Avg HR",
-    "max_hr": "Max HR",
     # Log set
     "log_set": "Log Set",
     "reps": "Reps",
