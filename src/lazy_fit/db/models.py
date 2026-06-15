@@ -59,8 +59,9 @@ class WorkoutSet:
     equipment_id: Optional[int]
     created_at: str
     exercise_name: str = ""
-    equipment_name: str = ""
+    equipment_name: str = ""  # combined display label (joined names)
     exercise_type: str = ""
+    equipment_ids: list[int] = field(default_factory=list)  # all linked equipment IDs
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +151,42 @@ def update_equipment(eq_id: int, name: str) -> None:
 def delete_equipment(eq_id: int) -> None:
     conn = get_connection()
     conn.execute("DELETE FROM equipment WHERE id=?", (eq_id,))
+    conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# WorkoutSet-Equipment links
+# ---------------------------------------------------------------------------
+
+
+def get_equipment_ids_for_set(set_id: int) -> list[int]:
+    """Return all equipment IDs linked to *set_id*, ordered by equipment name."""
+    rows = (
+        get_connection()
+        .execute(
+            """
+            SELECT wse.equipment_id
+            FROM workout_set_equipment wse
+            JOIN equipment eq ON eq.id = wse.equipment_id
+            WHERE wse.set_id = ?
+            ORDER BY eq.name
+            """,
+            (set_id,),
+        )
+        .fetchall()
+    )
+    return [r["equipment_id"] for r in rows]
+
+
+def set_equipment_for_set(set_id: int, equipment_ids: list[int]) -> None:
+    """Replace all equipment links for *set_id* with *equipment_ids*."""
+    conn = get_connection()
+    conn.execute("DELETE FROM workout_set_equipment WHERE set_id = ?", (set_id,))
+    for eq_id in equipment_ids:
+        conn.execute(
+            "INSERT OR IGNORE INTO workout_set_equipment(set_id, equipment_id) VALUES (?, ?)",
+            (set_id, eq_id),
+        )
     conn.commit()
 
 
@@ -351,7 +388,43 @@ def _row_to_workout_set(r: dict) -> WorkoutSet:
         exercise_name=r.get("exercise_name", ""),
         equipment_name=r.get("equipment_name", "") or "",
         exercise_type=r.get("exercise_type", ""),
+        equipment_ids=r.get("equipment_ids") or [],
     )
+
+
+def _attach_equipment_to_sets(sets: list[WorkoutSet]) -> list[WorkoutSet]:
+    """Populate equipment_ids and equipment_name on each set via join table.
+
+    Fetches all links for the given set IDs in a single query, then attaches
+    them. Returns the same list with fields populated in-place.
+    """
+    if not sets:
+        return sets
+    set_ids = [ws.id for ws in sets]
+    placeholders = ",".join("?" * len(set_ids))
+    rows = (
+        get_connection()
+        .execute(
+            f"""
+            SELECT wse.set_id, eq.id AS eq_id, eq.name AS eq_name
+            FROM workout_set_equipment wse
+            JOIN equipment eq ON eq.id = wse.equipment_id
+            WHERE wse.set_id IN ({placeholders})
+            ORDER BY eq.name
+            """,
+            set_ids,
+        )
+        .fetchall()
+    )
+    # Build map: set_id -> [(eq_id, eq_name), ...]
+    eq_map: dict[int, list[tuple[int, str]]] = {}
+    for r in rows:
+        eq_map.setdefault(r["set_id"], []).append((r["eq_id"], r["eq_name"]))
+    for ws in sets:
+        pairs = eq_map.get(ws.id, [])
+        ws.equipment_ids = [p[0] for p in pairs]
+        ws.equipment_name = ", ".join(p[1] for p in pairs)
+    return sets
 
 
 def get_sets_for_date(date: str) -> list[WorkoutSet]:
@@ -359,11 +432,9 @@ def get_sets_for_date(date: str) -> list[WorkoutSet]:
         get_connection()
         .execute(
             """
-        SELECT ws.*, e.name AS exercise_name, e.type AS exercise_type,
-               eq.name AS equipment_name
+        SELECT ws.*, e.name AS exercise_name, e.type AS exercise_type
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
-        LEFT JOIN equipment eq ON eq.id = ws.equipment_id
         WHERE ws.date = ?
         ORDER BY ws.order_index, ws.created_at
     """,
@@ -371,7 +442,8 @@ def get_sets_for_date(date: str) -> list[WorkoutSet]:
         )
         .fetchall()
     )
-    return [_row_to_workout_set(dict(r)) for r in rows]
+    sets = [_row_to_workout_set(dict(r)) for r in rows]
+    return _attach_equipment_to_sets(sets)
 
 
 def get_workout_dates() -> list[str]:
@@ -411,7 +483,7 @@ def create_workout_set(
     exercise_id: int,
     reps: Optional[int] = None,
     duration_sec: Optional[int] = None,
-    equipment_id: Optional[int] = None,
+    equipment_ids: Optional[list[int]] = None,
 ) -> WorkoutSet:
     conn = get_connection()
     # Determine next order_index for this date
@@ -420,37 +492,52 @@ def create_workout_set(
         (date,),
     ).fetchone()
     order_index = row["next_idx"]
+    # Use first equipment_id for legacy column (nullable); join table holds full list.
+    legacy_eq_id = equipment_ids[0] if equipment_ids else None
     cur = conn.execute(
         """INSERT INTO workout_set(date, exercise_id, order_index, reps, duration_sec, equipment_id)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        (date, exercise_id, order_index, reps, duration_sec, equipment_id),
+        (date, exercise_id, order_index, reps, duration_sec, legacy_eq_id),
     )
+    set_id = cur.lastrowid
+    for eq_id in (equipment_ids or []):
+        conn.execute(
+            "INSERT OR IGNORE INTO workout_set_equipment(set_id, equipment_id) VALUES (?, ?)",
+            (set_id, eq_id),
+        )
     conn.commit()
     row = conn.execute(
         """
-        SELECT ws.*, e.name AS exercise_name, e.type AS exercise_type,
-               eq.name AS equipment_name
+        SELECT ws.*, e.name AS exercise_name, e.type AS exercise_type
         FROM workout_set ws
         JOIN exercise e ON e.id = ws.exercise_id
-        LEFT JOIN equipment eq ON eq.id = ws.equipment_id
         WHERE ws.id = ?
     """,
-        (cur.lastrowid,),
+        (set_id,),
     ).fetchone()
-    return _row_to_workout_set(dict(row))
+    sets = _attach_equipment_to_sets([_row_to_workout_set(dict(row))])
+    return sets[0]
 
 
 def update_workout_set(
     set_id: int,
     reps: Optional[int] = None,
     duration_sec: Optional[int] = None,
-    equipment_id: Optional[int] = None,
+    equipment_ids: Optional[list[int]] = None,
 ) -> None:
     conn = get_connection()
+    legacy_eq_id = equipment_ids[0] if equipment_ids else None
     conn.execute(
         "UPDATE workout_set SET reps=?, duration_sec=?, equipment_id=? WHERE id=?",
-        (reps, duration_sec, equipment_id, set_id),
+        (reps, duration_sec, legacy_eq_id, set_id),
     )
+    # Replace join table entries.
+    conn.execute("DELETE FROM workout_set_equipment WHERE set_id = ?", (set_id,))
+    for eq_id in (equipment_ids or []):
+        conn.execute(
+            "INSERT OR IGNORE INTO workout_set_equipment(set_id, equipment_id) VALUES (?, ?)",
+            (set_id, eq_id),
+        )
     conn.commit()
 
 
@@ -469,7 +556,7 @@ def delete_workout_by_date(date: str) -> None:
 def get_prev_workout_values_for_exercise(
     exercise_id: int,
     before_date: str,
-    equipment_id: Optional[int] = None,
+    equipment_ids: Optional[list[int]] = None,
     _filter_equipment: bool = False,
 ) -> list[int]:
     """Return set values from the most recent workout before *before_date*.
@@ -478,27 +565,45 @@ def get_prev_workout_values_for_exercise(
     in set order. Empty list if no prior workout exists for *exercise_id*.
 
     When *_filter_equipment* is True the query is restricted to sets whose
-    equipment_id matches *equipment_id* (None means no equipment / IS NULL).
+    equipment set (via join table) exactly matches *equipment_ids*.
+    An empty list means 'no equipment'.
     """
     conn = get_connection()
+    eq_ids = sorted(equipment_ids or [])
+    eq_count = len(eq_ids)
+
     if _filter_equipment:
-        if equipment_id is None:
+        # Find the most recent date where sets exist with exactly the given equipment set.
+        if eq_count == 0:
+            # No equipment: sets that have no entries in join table.
             date_row = conn.execute(
                 """
-                SELECT DISTINCT date FROM workout_set
-                WHERE exercise_id = ? AND date < ? AND equipment_id IS NULL
-                ORDER BY date DESC LIMIT 1
+                SELECT DISTINCT ws.date FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date < ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM workout_set_equipment wse WHERE wse.set_id = ws.id
+                  )
+                ORDER BY ws.date DESC LIMIT 1
                 """,
                 (exercise_id, before_date),
             ).fetchone()
         else:
+            placeholders = ",".join("?" * eq_count)
             date_row = conn.execute(
-                """
-                SELECT DISTINCT date FROM workout_set
-                WHERE exercise_id = ? AND date < ? AND equipment_id = ?
-                ORDER BY date DESC LIMIT 1
+                f"""
+                SELECT DISTINCT ws.date FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date < ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse
+                      WHERE wse.set_id = ws.id AND wse.equipment_id IN ({placeholders})
+                  ) = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse2
+                      WHERE wse2.set_id = ws.id
+                  ) = ?
+                ORDER BY ws.date DESC LIMIT 1
                 """,
-                (exercise_id, before_date, equipment_id),
+                [exercise_id, before_date] + eq_ids + [eq_count, eq_count],
             ).fetchone()
     else:
         date_row = conn.execute(
@@ -512,24 +617,37 @@ def get_prev_workout_values_for_exercise(
     if date_row is None:
         return []
     prev_date = date_row["date"]
+
     if _filter_equipment:
-        if equipment_id is None:
+        if eq_count == 0:
             rows = conn.execute(
                 """
-                SELECT reps, duration_sec FROM workout_set
-                WHERE exercise_id = ? AND date = ? AND equipment_id IS NULL
-                ORDER BY order_index, created_at
+                SELECT ws.reps, ws.duration_sec FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM workout_set_equipment wse WHERE wse.set_id = ws.id
+                  )
+                ORDER BY ws.order_index, ws.created_at
                 """,
                 (exercise_id, prev_date),
             ).fetchall()
         else:
+            placeholders = ",".join("?" * eq_count)
             rows = conn.execute(
-                """
-                SELECT reps, duration_sec FROM workout_set
-                WHERE exercise_id = ? AND date = ? AND equipment_id = ?
-                ORDER BY order_index, created_at
+                f"""
+                SELECT ws.reps, ws.duration_sec FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse
+                      WHERE wse.set_id = ws.id AND wse.equipment_id IN ({placeholders})
+                  ) = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse2
+                      WHERE wse2.set_id = ws.id
+                  ) = ?
+                ORDER BY ws.order_index, ws.created_at
                 """,
-                (exercise_id, prev_date, equipment_id),
+                [exercise_id, prev_date] + eq_ids + [eq_count, eq_count],
             ).fetchall()
     else:
         rows = conn.execute(
@@ -547,12 +665,12 @@ def get_prev_workout_values_for_exercise(
     return result
 
 
-def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
-    """Return the most recent equipment_id used for *exercise_id*, or None."""
+def get_last_equipment_ids_for_exercise(exercise_id: int) -> list[int]:
+    """Return the equipment IDs from the most recent set for *exercise_id*, or []."""
     row = (
         get_connection()
         .execute(
-            """SELECT equipment_id FROM workout_set
+            """SELECT id FROM workout_set
            WHERE exercise_id = ?
            ORDER BY date DESC, order_index DESC, created_at DESC
            LIMIT 1""",
@@ -561,8 +679,8 @@ def get_last_equipment_for_exercise(exercise_id: int) -> Optional[int]:
         .fetchone()
     )
     if row is None:
-        return None
-    return row["equipment_id"]
+        return []
+    return get_equipment_ids_for_set(row["id"])
 
 
 # ---------------------------------------------------------------------------
@@ -777,7 +895,7 @@ def get_last_exercise_today() -> Optional[Exercise]:
 def get_default_value_for_next_set(
     exercise_id: int,
     today: str,
-    equipment_id: Optional[int] = None,
+    equipment_ids: Optional[list[int]] = None,
     filter_by_equipment: bool = False,
 ) -> Optional[int]:
     """Return suggested value for the next set of *exercise_id* today.
@@ -788,21 +906,42 @@ def get_default_value_for_next_set(
     (or the last set of the previous workout if nothing is logged yet).
     Returns None if no previous workout exists for this exercise.
 
-    When *filter_by_equipment* is True the search is restricted to sets with
-    the given *equipment_id* (None = no equipment / IS NULL).
+    When *filter_by_equipment* is True the search is restricted to sets whose
+    equipment set exactly matches *equipment_ids* (empty list = no equipment).
     """
     conn = get_connection()
+    eq_ids = sorted(equipment_ids or [])
+    eq_count = len(eq_ids)
+
     # How many sets already logged today with matching equipment (= index of next set)
     if filter_by_equipment:
-        if equipment_id is None:
+        if eq_count == 0:
             cnt_row = conn.execute(
-                "SELECT COUNT(*) AS cnt FROM workout_set WHERE exercise_id = ? AND date = ? AND equipment_id IS NULL",
+                """
+                SELECT COUNT(*) AS cnt FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM workout_set_equipment wse WHERE wse.set_id = ws.id
+                  )
+                """,
                 (exercise_id, today),
             ).fetchone()
         else:
+            placeholders = ",".join("?" * eq_count)
             cnt_row = conn.execute(
-                "SELECT COUNT(*) AS cnt FROM workout_set WHERE exercise_id = ? AND date = ? AND equipment_id = ?",
-                (exercise_id, today, equipment_id),
+                f"""
+                SELECT COUNT(*) AS cnt FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse
+                      WHERE wse.set_id = ws.id AND wse.equipment_id IN ({placeholders})
+                  ) = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse2
+                      WHERE wse2.set_id = ws.id
+                  ) = ?
+                """,
+                [exercise_id, today] + eq_ids + [eq_count, eq_count],
             ).fetchone()
     else:
         cnt_row = conn.execute(
@@ -812,7 +951,7 @@ def get_default_value_for_next_set(
     set_index: int = cnt_row["cnt"] if cnt_row else 0
 
     prev_values = get_prev_workout_values_for_exercise(
-        exercise_id, today, equipment_id=equipment_id, _filter_equipment=filter_by_equipment
+        exercise_id, today, equipment_ids=eq_ids, _filter_equipment=filter_by_equipment
     )
     if not prev_values:
         return None
@@ -822,25 +961,37 @@ def get_default_value_for_next_set(
 
     # Previous workout has fewer sets — fall back to last value logged today
     if filter_by_equipment:
-        if equipment_id is None:
+        if eq_count == 0:
             last_today = conn.execute(
                 """
-                SELECT reps, duration_sec FROM workout_set
-                WHERE exercise_id = ? AND date = ? AND equipment_id IS NULL
-                ORDER BY order_index DESC, created_at DESC
+                SELECT ws.reps, ws.duration_sec FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM workout_set_equipment wse WHERE wse.set_id = ws.id
+                  )
+                ORDER BY ws.order_index DESC, ws.created_at DESC
                 LIMIT 1
                 """,
                 (exercise_id, today),
             ).fetchone()
         else:
+            placeholders = ",".join("?" * eq_count)
             last_today = conn.execute(
-                """
-                SELECT reps, duration_sec FROM workout_set
-                WHERE exercise_id = ? AND date = ? AND equipment_id = ?
-                ORDER BY order_index DESC, created_at DESC
+                f"""
+                SELECT ws.reps, ws.duration_sec FROM workout_set ws
+                WHERE ws.exercise_id = ? AND ws.date = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse
+                      WHERE wse.set_id = ws.id AND wse.equipment_id IN ({placeholders})
+                  ) = ?
+                  AND (
+                      SELECT COUNT(*) FROM workout_set_equipment wse2
+                      WHERE wse2.set_id = ws.id
+                  ) = ?
+                ORDER BY ws.order_index DESC, ws.created_at DESC
                 LIMIT 1
                 """,
-                (exercise_id, today, equipment_id),
+                [exercise_id, today] + eq_ids + [eq_count, eq_count],
             ).fetchone()
     else:
         last_today = conn.execute(
@@ -901,6 +1052,15 @@ def export_all_data() -> dict:
                FROM workout_set ORDER BY date, order_index, created_at"""
         ).fetchall()
     ]
+    # Attach equipment_ids list to each workout set.
+    wse_rows = conn.execute(
+        "SELECT set_id, equipment_id FROM workout_set_equipment ORDER BY set_id, equipment_id"
+    ).fetchall()
+    wse_map: dict[int, list[int]] = {}
+    for r in wse_rows:
+        wse_map.setdefault(r["set_id"], []).append(r["equipment_id"])
+    for ws in workout_sets:
+        ws["equipment_ids"] = wse_map.get(ws["id"], [])
     _EXCLUDE_SETTINGS = {"language", "rest_timer_minimized"}
     settings = {
         r["key"]: r["value"]
@@ -910,7 +1070,7 @@ def export_all_data() -> dict:
         if r["key"] not in _EXCLUDE_SETTINGS
     }
     return {
-        "version": 3,
+        "version": 4,
         "exported_at": _date.today().isoformat(),
         "muscle_groups": muscle_groups,
         "equipment": equipment,
@@ -923,6 +1083,7 @@ def export_all_data() -> dict:
 def reset_all_data() -> None:
     """Delete all user-generated data (sets, exercises, muscle groups, equipment)."""
     conn = get_connection()
+    conn.execute("DELETE FROM workout_set_equipment")
     conn.execute("DELETE FROM workout_set")
     conn.execute("DELETE FROM exercise_muscle_group")
     conn.execute("DELETE FROM exercise")
@@ -935,6 +1096,7 @@ def import_all_data(data: dict) -> None:
     """Replace all user data with the contents of *data* (from export_all_data)."""
     conn = get_connection()
     # Delete in FK-safe order
+    conn.execute("DELETE FROM workout_set_equipment")
     conn.execute("DELETE FROM workout_set")
     conn.execute("DELETE FROM exercise_muscle_group")
     conn.execute("DELETE FROM exercise")
@@ -982,6 +1144,15 @@ def import_all_data(data: dict) -> None:
                 ws.get("created_at", ""),
             ),
         )
+        # Restore multi-equipment links (new format) or fall back to legacy equipment_id.
+        eq_ids: list[int] = ws.get("equipment_ids") or []
+        if not eq_ids and ws.get("equipment_id"):
+            eq_ids = [ws["equipment_id"]]
+        for eq_id in eq_ids:
+            conn.execute(
+                "INSERT OR IGNORE INTO workout_set_equipment(set_id, equipment_id) VALUES (?, ?)",
+                (ws["id"], eq_id),
+            )
     for key, value in data.get("settings", {}).items():
         conn.execute(
             "INSERT OR REPLACE INTO app_settings(key, value) VALUES (?, ?)",

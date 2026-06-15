@@ -10,15 +10,16 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import COLOR_BTN_ADD, COLOR_BTN_PRIMARY, FONT_LG, FONT_MD, FORM_INPUT_W, SPACE_SM, SPACE_XS, themed_pack
+from lazy_fit.ui_constants import COLOR_BTN_ADD, COLOR_BTN_PRIMARY, FONT_LG, FONT_MD, SPACE_SM, SPACE_XS, themed_pack
 from lazy_fit.widgets import StepperInput
 from lazy_fit.screens._workout_log import populate_workout_log
+from lazy_fit.screens._equipment_picker import build_equipment_picker
 from lazy_fit.db.models import (
     Exercise,
     get_all_equipment,
     create_workout_set,
     get_default_value_for_next_set,
-    get_last_equipment_for_exercise,
+    get_last_equipment_ids_for_exercise,
 )
 
 
@@ -31,37 +32,30 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
 
     today = _today()
     equipment_list = get_all_equipment()
-    last_equipment_id = get_last_equipment_for_exercise(exercise.id)
-
-    def _selected_equipment_id() -> Optional[int]:
-        """Return the equipment_id currently selected in equip_select, or None."""
-        sel_widget = equip_select_ref[0]
-        if not sel_widget or not sel_widget.value:
-            return None
-        sel = sel_widget.value
-        if sel == t("no_equipment"):
-            return None
-        for eq in equipment_list:
-            if eq.name == sel:
-                return eq.id
-        return None
-
-    def _default_value() -> int:
-        eq_id = _selected_equipment_id()
-        # filter_by_equipment=True only when equip_select has been initialised
-        # (avoids filtering on first call before the widget exists)
-        use_filter = equip_select_ref[0] is not None
-        val = get_default_value_for_next_set(
-            exercise.id, today, equipment_id=eq_id, filter_by_equipment=use_filter
-        )
-        return val if val is not None else 0
+    last_equipment_ids = get_last_equipment_ids_for_exercise(exercise.id)
 
     # ------------------------------------------------------------------ refs
     value_input_ref: list[Optional[StepperInput]] = [None]
-    equip_select_ref: list[Optional[toga.Selection]] = [None]
+    selected_eq_ids_ref: list[list[int]] = [list(last_equipment_ids)]
     history_box_ref: list[Optional[toga.Box]] = [None]
     timer_done_ref: list[bool] = [False]
     action_btn_ref: list[Optional[toga.Button]] = [None]
+
+    def _selected_equipment_ids() -> list[int]:
+        return selected_eq_ids_ref[0]
+
+    def _default_value() -> int:
+        val = get_default_value_for_next_set(
+            exercise.id, today,
+            equipment_ids=_selected_equipment_ids(),
+            filter_by_equipment=True,
+        )
+        return val if val is not None else 0
+
+    def _on_equipment_change(ids: list[int]) -> None:
+        selected_eq_ids_ref[0] = ids
+        if value_input_ref[0] is not None:
+            value_input_ref[0].value = _default_value()
 
     # ------------------------------------------------------------------ exercise timer
     def _set_btn_start_mode() -> None:
@@ -137,13 +131,13 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         except (ValueError, TypeError):
             int_value = 0
 
-        eq_id = _selected_equipment_id()
+        eq_ids = _selected_equipment_ids()
 
         if exercise.type == "reps":
-            create_workout_set(today, exercise.id, reps=int_value, equipment_id=eq_id)
+            create_workout_set(today, exercise.id, reps=int_value, equipment_ids=eq_ids)
         else:  # time
             create_workout_set(
-                today, exercise.id, duration_sec=int_value, equipment_id=eq_id
+                today, exercise.id, duration_sec=int_value, equipment_ids=eq_ids
             )
 
         # Reset timer gate for time exercises
@@ -200,26 +194,17 @@ def build(app: toga.App, exercise: Exercise) -> toga.Box:
         action_btn_ref[0] = action_btn
         form_children = [_field("duration", value_input)]
 
-    equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
-    _last_equip_name = next(
-        (eq.name for eq in equipment_list if eq.id == last_equipment_id), None
+    equip_picker = build_equipment_picker(
+        equipment_list,
+        initial_ids=list(selected_eq_ids_ref[0]),
+        on_change=_on_equipment_change,
+        app=app,
     )
-    def on_equipment_change(widget: toga.Widget) -> None:
-        if value_input_ref[0] is not None:
-            value_input_ref[0].value = _default_value()
-
-    equip_select = toga.Selection(
-        items=equip_options,
-        value=_last_equip_name if _last_equip_name is not None else t("no_equipment"),
-        on_change=on_equipment_change,
-        style=Pack(width=FORM_INPUT_W, margin=4),
-    )
-    equip_select_ref[0] = equip_select
 
     equip_row = toga.Box(
         children=[
             toga.Label(t("equipment"), style=Pack(margin=SPACE_XS)),
-            toga.Box(children=[toga.Box(style=Pack(flex=1)), equip_select], style=Pack(direction=ROW)),
+            equip_picker,
         ],
         style=Pack(direction=COLUMN, margin=SPACE_XS),
     )

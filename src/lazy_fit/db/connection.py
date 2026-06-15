@@ -72,9 +72,28 @@ def init_db() -> None:
 
         CREATE INDEX IF NOT EXISTS idx_workout_set_date ON workout_set(date);
 
+        CREATE TABLE IF NOT EXISTS workout_set_equipment (
+            set_id       INTEGER NOT NULL REFERENCES workout_set(id) ON DELETE CASCADE,
+            equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+            PRIMARY KEY (set_id, equipment_id)
+        );
+
         CREATE TABLE IF NOT EXISTS app_settings (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
     """)
     conn.commit()
+    # One-time migration: copy existing workout_set.equipment_id into join table.
+    try:
+        rows = conn.execute(
+            "SELECT id, equipment_id FROM workout_set WHERE equipment_id IS NOT NULL"
+        ).fetchall()
+        for row in rows:
+            conn.execute(
+                "INSERT OR IGNORE INTO workout_set_equipment(set_id, equipment_id) VALUES (?, ?)",
+                (row[0], row[1]),
+            )
+        conn.commit()
+    except Exception:
+        pass

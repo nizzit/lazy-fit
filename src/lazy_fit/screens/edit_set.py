@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Optional, Callable
+from typing import Callable
 
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from lazy_fit.i18n import t
-from lazy_fit.ui_constants import FORM_INPUT_W, SPACE_MD, SPACE_SM, SPACE_XS, COLOR_BTN_PRIMARY, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER, themed_pack
+from lazy_fit.ui_constants import SPACE_MD, SPACE_SM, SPACE_XS, COLOR_BTN_PRIMARY, COLOR_BTN_SECONDARY, COLOR_BTN_DANGER, themed_pack
 from lazy_fit.widgets import StepperInput, ConfirmButton
-from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set, delete_workout_set
+from lazy_fit.db.models import WorkoutSet, Equipment, update_workout_set, delete_workout_set, get_equipment_ids_for_set
 from lazy_fit.screens.settings._crud import wrap_scroll
+from lazy_fit.screens._equipment_picker import build_equipment_picker
 
 
 def build(
@@ -47,15 +48,27 @@ def build(
 
     input_row = _field(label_key, value_input)
 
-    # Equipment picker
-    equip_options = [t("no_equipment")] + [eq.name for eq in equipment_list]
-    current_equip = ws.equipment_name if ws.equipment_name else t("no_equipment")
-    equip_select = toga.Selection(
-        items=equip_options,
-        value=current_equip,
-        style=Pack(width=FORM_INPUT_W, margin=SPACE_XS),
+    # Multi-select equipment picker
+    current_eq_ids: list[int] = get_equipment_ids_for_set(ws.id)
+    selected_eq_ids_ref: list[list[int]] = [list(current_eq_ids)]
+
+    def _on_equipment_change(ids: list[int]) -> None:
+        selected_eq_ids_ref[0] = ids
+
+    equip_picker = build_equipment_picker(
+        equipment_list,
+        initial_ids=list(current_eq_ids),
+        on_change=_on_equipment_change,
+        app=app,
     )
-    equip_row = _field("equipment", equip_select)
+
+    equip_row = toga.Box(
+        children=[
+            toga.Label(t("equipment"), style=Pack(margin=SPACE_XS)),
+            equip_picker,
+        ],
+        style=Pack(direction=COLUMN, margin=SPACE_XS),
+    )
 
     def on_save(widget: toga.Widget) -> None:
         raw_value = value_input.value
@@ -64,18 +77,12 @@ def build(
         except (ValueError, TypeError):
             int_value = 0
 
-        eq_id: Optional[int] = None
-        sel = equip_select.value
-        if sel and sel != t("no_equipment"):
-            for eq in equipment_list:
-                if eq.name == sel:
-                    eq_id = eq.id
-                    break
+        eq_ids = selected_eq_ids_ref[0]
 
         if ws.exercise_type == "reps":
-            update_workout_set(ws.id, reps=int_value, equipment_id=eq_id)
+            update_workout_set(ws.id, reps=int_value, equipment_ids=eq_ids)
         else:  # time
-            update_workout_set(ws.id, duration_sec=int_value, equipment_id=eq_id)
+            update_workout_set(ws.id, duration_sec=int_value, equipment_ids=eq_ids)
 
         on_saved()
         app.nav_pop()

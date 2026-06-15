@@ -16,7 +16,6 @@ from lazy_fit.db.models import (
     WorkoutSet,
     get_sets_for_date,
     get_all_equipment,
-    update_workout_set,
     delete_workout_set,
     delete_workout_by_date,
     get_prev_workout_values_for_exercise,
