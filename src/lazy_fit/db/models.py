@@ -870,7 +870,7 @@ def export_all_data() -> dict:
     muscle_groups = [
         dict(r)
         for r in conn.execute(
-            "SELECT id, name, weekly_sets FROM muscle_group ORDER BY id"
+            "SELECT id, name, weekly_sets, rest_days FROM muscle_group ORDER BY id"
         ).fetchall()
     ]
     equipment = [
@@ -901,13 +901,22 @@ def export_all_data() -> dict:
                FROM workout_set ORDER BY date, order_index, created_at"""
         ).fetchall()
     ]
+    _EXCLUDE_SETTINGS = {"language", "rest_timer_minimized"}
+    settings = {
+        r["key"]: r["value"]
+        for r in conn.execute(
+            "SELECT key, value FROM app_settings"
+        ).fetchall()
+        if r["key"] not in _EXCLUDE_SETTINGS
+    }
     return {
-        "version": 2,
+        "version": 3,
         "exported_at": _date.today().isoformat(),
         "muscle_groups": muscle_groups,
         "equipment": equipment,
         "exercises": exercises,
         "workout_sets": workout_sets,
+        "settings": settings,
     }
 
 
@@ -935,8 +944,8 @@ def import_all_data(data: dict) -> None:
     # Insert in FK-safe order (parents first)
     for mg in data.get("muscle_groups", []):
         conn.execute(
-            "INSERT INTO muscle_group(id, name, weekly_sets) VALUES (?, ?, ?)",
-            (mg["id"], mg["name"], mg.get("weekly_sets")),
+            "INSERT INTO muscle_group(id, name, weekly_sets, rest_days) VALUES (?, ?, ?, ?)",
+            (mg["id"], mg["name"], mg.get("weekly_sets"), mg.get("rest_days")),
         )
     for eq in data.get("equipment", []):
         conn.execute(
@@ -972,5 +981,10 @@ def import_all_data(data: dict) -> None:
                 ws.get("equipment_id"),
                 ws.get("created_at", ""),
             ),
+        )
+    for key, value in data.get("settings", {}).items():
+        conn.execute(
+            "INSERT OR REPLACE INTO app_settings(key, value) VALUES (?, ?)",
+            (key, value),
         )
     conn.commit()
